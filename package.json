@@ -6,7 +6,8 @@
     "build": "hardhat compile && node scripts/export-abi.ts",
     "test": "hardhat test solidity",
     "deploy": "hardhat compile && node --env-file=../.greenlight-secrets/testnet.env scripts/deploy.ts",
-    "balances": "node --env-file=../.greenlight-secrets/testnet.env scripts/balances.ts"
+    "balances": "node --env-file=../.greenlight-secrets/testnet.env scripts/balances.ts",
+    "replay": "node scripts/replay.ts"
   },
   "repository": {
     "type": "git",

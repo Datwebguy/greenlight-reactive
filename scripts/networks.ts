@@ -37,7 +37,7 @@ export const chains: TradingChain[] = [
   },
   {
     viem: unichainSepolia,
-    rpcUrl: process.env.UNICHAIN_SEPOLIA_RPC_URL ?? "https://sepolia.unichain.org",
+    rpcUrl: process.env.UNICHAIN_SEPOLIA_RPC_URL ?? "https://unichain-sepolia-rpc.publicnode.com",
     callbackProxy: "0x775c9B990ADe401060B78D0e98684eEf8d2466C1",
     priceFeed: "0xd9c93081210dFc33326B2af4C2c11848095E6a9a",
     aggregator: "0xe980F53c4dfcE2Be6047b98Fdc0778D1193aeECE",

@@ -33,6 +33,7 @@ const out: Record<string, any> = fs.existsSync(outFile) ? JSON.parse(fs.readFile
 const save = () => {
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, JSON.stringify(out, null, 2) + "\n");
+  fs.writeFileSync(path.join(root, "web/src/lib/deployments.json"), JSON.stringify(out, null, 2) + "\n");
 };
 
 async function deploy(chain: typeof lasna | TradingChain, name: string, args: unknown[], value = 0n) {

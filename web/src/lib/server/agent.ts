@@ -106,6 +106,8 @@ export interface TickResult {
   outcome: string;
   action?: Decision["action"];
   source?: "near-tee" | "openai";
+  /** Why the confidential model was not used, when the backup decided. */
+  nearError?: string;
   latencyMs?: number;
   tx?: string;
   reason?: string;
@@ -188,6 +190,7 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
   let latencyMs: number;
   let chatId: string | null = null;
   let signer: string | null = null;
+  let nearError: string | undefined;
   try {
     const near = await askNear(system, user);
     decision = near.decision;
@@ -207,7 +210,9 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
         signature: at < 0 ? "0x" : sig.signature,
       };
     }
-  } catch {
+  } catch (e) {
+    nearError = (e as Error).message.slice(0, 200);
+    console.error("NEAR AI Cloud failed, using the backup model:", nearError);
     source = "openai";
     const oa = await askOpenAI(system, user);
     decision = oa.decision;
@@ -233,7 +238,7 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
   if (decision.action === "hold" || !options.includes(decision.order)) {
     const outcome = decision.action === "hold" ? "held" : "invalid order";
     await record(outcome, null);
-    return { chainId: view.chainId, account: view.address, outcome, action: decision.action, source, latencyMs, reason: decision.reason };
+    return { chainId: view.chainId, account: view.address, outcome, action: decision.action, source, nearError, latencyMs, reason: decision.reason };
   }
 
   const [, side, amount, ref] = decision.order.split(":");
@@ -267,5 +272,5 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
     }
   }
   await record(outcome, hash);
-  return { chainId: view.chainId, account: view.address, outcome, action: decision.action, source, latencyMs, tx: hash, reason: decision.reason };
+  return { chainId: view.chainId, account: view.address, outcome, action: decision.action, source, nearError, latencyMs, tx: hash, reason: decision.reason };
 }

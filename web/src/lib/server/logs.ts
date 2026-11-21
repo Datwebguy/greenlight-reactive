@@ -59,19 +59,27 @@ export async function readLogs(opts: {
   const e = entry;
   const client = clientFor(chainId);
   const scan = async () => {
-    const head = await client.getBlockNumber();
+    // Public RPCs are load-balanced and their nodes can lag a block or two behind each other.
+    const head = (await client.getBlockNumber()) - 3n;
     const span = spanFor(chainId);
     let from = e.scannedTo + 1n;
     while (from <= head) {
       const to = from + span > head ? head : from + span;
-      const found = (await client.getLogs({
-        address,
-        events,
-        args: args as never,
-        fromBlock: from,
-        toBlock: to,
-        strict: true,
-      })) as unknown as TimedLog[];
+      let found: TimedLog[];
+      try {
+        found = (await client.getLogs({
+          address,
+          events,
+          args: args as never,
+          fromBlock: from,
+          toBlock: to,
+          strict: true,
+        })) as unknown as TimedLog[];
+      } catch (err) {
+        // Keep what has been read; the next request continues from here.
+        console.warn(`Log read on chain ${chainId} paused at block ${from}: ${(err as Error).message.split("\n")[0]}`);
+        break;
+      }
       // Some RPCs omit the block time on logs, or report it as zero; read it from the block instead.
       const hasTime = (l: TimedLog) => Boolean(l.blockTimestamp) && BigInt(l.blockTimestamp as bigint) > 0n;
       const missing = [...new Set(found.filter((l) => !hasTime(l)).map((l) => l.blockNumber!))];

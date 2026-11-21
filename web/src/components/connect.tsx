@@ -24,9 +24,16 @@ export function ConnectButton() {
     <button
       onClick={() => injected && connect({ connector: injected })}
       disabled={!injected || isPending}
-      className="rounded-xl bg-ink px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-ink-2 disabled:opacity-50"
+      className="whitespace-nowrap rounded-xl bg-ink px-3 py-2 text-[13px] font-semibold text-white hover:bg-ink-2 disabled:opacity-50 sm:px-3.5"
     >
-      {isPending ? "Connecting…" : "Connect wallet"}
+      {isPending ? (
+        "Connecting…"
+      ) : (
+        <>
+          <span className="sm:hidden">Connect</span>
+          <span className="hidden sm:inline">Connect wallet</span>
+        </>
+      )}
     </button>
   );
 }

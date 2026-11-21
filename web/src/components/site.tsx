@@ -9,17 +9,20 @@ export function SiteHeader() {
         <Link href="/" aria-label="Greenlight home">
           <Logo />
         </Link>
-        <nav className="flex items-center gap-1 text-[14px] sm:gap-2">
-          <Link href="/#how" className="hidden rounded-lg px-3 py-2 text-ink-2 hover:text-ink sm:inline">
+        <nav className="flex items-center gap-0.5 text-[14px] sm:gap-1">
+          <Link href="/#how" className="hidden rounded-lg px-3 py-2 text-ink-2 hover:text-ink md:inline">
             How it works
           </Link>
-          <Link href="/live" className="rounded-lg px-3 py-2 text-ink-2 hover:text-ink">
+          <Link href="/live" className="rounded-lg px-2.5 py-2 text-ink-2 hover:text-ink sm:px-3">
             Live
           </Link>
-          <Link href="/app" className="rounded-lg px-3 py-2 text-ink-2 hover:text-ink">
-            My account
+          <Link href="/app" className="rounded-lg px-2.5 py-2 text-ink-2 hover:text-ink sm:px-3">
+            <span className="sm:hidden">Account</span>
+            <span className="hidden sm:inline">My account</span>
           </Link>
-          <ConnectButton />
+          <span className="ml-1">
+            <ConnectButton />
+          </span>
         </nav>
       </div>
     </header>

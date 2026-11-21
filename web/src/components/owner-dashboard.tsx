@@ -3,18 +3,20 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { Address } from "viem";
-import { useAccount, useSwitchChain, useWriteContract, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { greenlightAccountAbi, greenlightVenueAbi } from "@/lib/abi";
-import { chainById, lasna, txUrl, addressUrl } from "@/lib/config";
+import { addressUrl, chainById, txUrl } from "@/lib/config";
+import { medianDelivery } from "@/lib/cycle";
 import { ago, dollars, duration, price, reasonText, short, when } from "@/lib/format";
-import type { AccountView, Delivery, OwnerView, TimelineItem } from "@/lib/server/account";
+import type { AccountView, OwnerView, TimelineItem } from "@/lib/server/account";
 import type { DecisionRow } from "@/lib/server/db";
+import { ChainChip, chainLabel } from "./chain-chip";
 import { LimitChart } from "./limit-chart";
-import { Badge, Button, Card, CardHead, Stat, TxLink } from "./ui";
+import { LimitMeter } from "./limit-meter";
+import { Button, Card, CardHead } from "./ui";
 
-type Data = OwnerView & { decisions: (DecisionRow & { createdAt: string })[] };
-
-const chainName = (id: number) => (id === lasna.chain.id ? "Reactive" : id === 84532 ? "Base" : id === 1301 ? "Unichain" : `${id}`);
+type Decision = DecisionRow & { createdAt: string };
+type Data = OwnerView & { decisions: Decision[] };
 
 function useOwner(owner: Address) {
   return useQuery<Data>({
@@ -33,8 +35,7 @@ function useAct() {
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const qc = useQueryClient();
-  const client84532 = usePublicClient({ chainId: 84532 });
-  const client1301 = usePublicClient({ chainId: 1301 });
+  const clients = { 84532: usePublicClient({ chainId: 84532 }), 1301: usePublicClient({ chainId: 1301 }) };
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,20 +43,21 @@ function useAct() {
     setBusy(key);
     setError(null);
     try {
-      await switchChainAsync({ chainId: chainId as 84532 | 1301 });
-      const hash = await writeContractAsync({ ...params, chainId: chainId as 84532 | 1301 } as never);
-      const client = chainId === 84532 ? client84532 : client1301;
-      await client?.waitForTransactionReceipt({ hash });
+      const id = chainId as 84532 | 1301;
+      await switchChainAsync({ chainId: id });
+      const hash = await writeContractAsync({ ...params, chainId: id } as never);
+      await clients[id]?.waitForTransactionReceipt({ hash });
       await qc.invalidateQueries();
     } catch (e) {
       const msg = (e as { shortMessage?: string }).shortMessage ?? (e as Error).message;
-      setError(msg.split("\n")[0]);
+      setError(msg.includes("User rejected") ? "You cancelled the request in your wallet." : msg.split("\n")[0]);
     } finally {
       setBusy(null);
     }
   }
   return { act, busy, error };
 }
+type Act = ReturnType<typeof useAct>["act"];
 
 export function OwnerDashboard({ owner }: { owner: Address }) {
   const { data, error, isLoading } = useOwner(owner);
@@ -64,187 +66,182 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
   const { act, busy, error: actError } = useAct();
 
   if (isLoading) return <Skeleton />;
-  if (error || !data) return <p className="py-20 text-center text-ink-2">This account could not be loaded right now.</p>;
-  if (data.accounts.length === 0)
-    return <p className="py-20 text-center text-ink-2">{short(owner)} has not opened a Greenlight account yet.</p>;
+  if (error || !data) return <Empty text="This account could not be loaded right now. Please try again in a moment." />;
+  if (data.accounts.length === 0) return <Empty text={`${short(owner)} has not opened a Greenlight account yet.`} />;
 
   const main = data.accounts[0];
   const policy = main.policy;
   const book = data.book;
   const frozen = data.accounts.some((a) => a.frozen) || Boolean(book?.frozen);
   const limitCents = book?.limitCents ?? main.limitCents;
-  const lastFreeze = [...data.timeline].reverse().find((t) => t.kind === "limit" && t.frozen);
-
+  const usedCents = Math.max(0, main.limitCents - main.remainingCents);
+  const lastFreeze = [...data.timeline].reverse().find((t): t is Extract<TimelineItem, { kind: "limit" }> => t.kind === "limit" && t.frozen);
   const limitPoints = data.timeline
     .filter((t): t is Extract<TimelineItem, { kind: "limit" }> => t.kind === "limit")
     .map((t) => ({ time: t.time, limitCents: t.limitCents, frozen: t.frozen, reason: t.reason }));
+  const pnl = book?.pnlCents ?? 0;
 
   return (
-    <div className="space-y-6 pt-8">
-      {/* status */}
-      <div
-        className={`flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between ${
-          frozen ? "border-stop/30 bg-stop-soft" : "border-go/25 bg-go-soft"
-        }`}
-      >
-        <div className="flex items-start gap-3">
-          <span className={`mt-1.5 h-3 w-3 shrink-0 rounded-full ${frozen ? "bg-stop" : "live-dot bg-go"}`} />
-          <div>
-            <div className="text-lg font-semibold">
-              {frozen ? "The agent is frozen" : "The agent is trading within its limit"}
-            </div>
-            <div className="text-[14px] text-ink-2">
-              {frozen
-                ? `${lastFreeze && lastFreeze.kind === "limit" ? reasonText[lastFreeze.reason] : "Frozen"}. No trades run until the owner unfreezes it.`
-                : `Owner ${short(owner)} · ${data.accounts.length} account${data.accounts.length > 1 ? "s" : ""} on ${[
-                    ...new Set(data.accounts.map((a) => chainName(a.chainId))),
-                  ].join(" and ")}`}
-            </div>
-          </div>
-        </div>
-        {isOwner && (
-          <div className="flex gap-2">
-            {frozen ? (
-              <Button
-                disabled={!!busy}
-                onClick={() =>
-                  act("unfreeze", main.chainId, { address: main.address, abi: greenlightAccountAbi, functionName: "unfreeze" })
-                }
-              >
-                {busy === "unfreeze" ? "Unfreezing…" : "Unfreeze"}
-              </Button>
-            ) : (
-              <Button
-                tone="danger"
-                disabled={!!busy}
-                onClick={() =>
-                  act("freeze", main.chainId, { address: main.address, abi: greenlightAccountAbi, functionName: "freeze" })
-                }
-              >
-                {busy === "freeze" ? "Freezing…" : "Freeze everywhere"}
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-      {actError && <p className="rounded-xl bg-stop-soft px-4 py-3 text-[14px] text-stop">{actError}</p>}
-
-      {/* headline numbers */}
-      <Card className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          label="Daily limit"
-          value={dollars(limitCents)}
-          sub={`Can move between ${dollars(policy.floorCents)} and ${dollars(policy.ceilingCents)}`}
-        />
-        <Stat
-          label="Left today"
-          value={dollars(data.accounts.reduce((s, a) => s + (a.frozen ? 0 : a.remainingCents), 0))}
-          sub="Resets at midnight UTC"
-        />
-        <Stat
-          label="Record"
-          value={
-            <>
-              {book?.wins ?? 0} <span className="text-mute">won</span> · {book?.losses ?? 0}{" "}
-              <span className="text-mute">lost</span>
-            </>
-          }
-          sub={
-            book && (book.winStreak || book.lossStreak)
-              ? book.winStreak
-                ? `${book.winStreak} of ${policy.raiseAfterWins} wins toward a raise`
-                : `${book.lossStreak} of ${policy.freezeAfterLosses} losses before a freeze`
-              : `Trades are judged after ${duration(policy.scoreWindow)}`
-          }
-        />
-        <Stat
-          label="Result so far"
-          value={
-            <span className={(book?.pnlCents ?? 0) < 0 ? "text-stop" : "text-go-deep"}>
-              {(book?.pnlCents ?? 0) < 0 ? "−" : "+"}
-              {dollars(Math.abs(book?.pnlCents ?? 0))}
+    <div className="space-y-6 pt-8 pb-4">
+      {/* title */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${frozen ? "bg-stop" : "live-dot bg-go"}`} />
+            <span className={`text-[13px] font-semibold ${frozen ? "text-stop" : "text-go-deep"}`}>
+              {frozen ? "Frozen" : "Trading"}
             </span>
-          }
-          sub={data.price ? `ETH ${price(data.price.value)} · Chainlink, ${ago(data.price.updatedAt)}` : undefined}
-        />
-      </Card>
+          </div>
+          <h1 className="mt-1 text-[28px] font-semibold tracking-tight">
+            {isOwner ? "Your agent" : process.env.NEXT_PUBLIC_DEMO_OWNER?.toLowerCase() === owner.toLowerCase() ? "Demo agent" : "Agent"}
+          </h1>
+          <p className="text-[14px] text-ink-2">
+            Owned by <span className="num">{short(owner)}</span> · trading ETH on{" "}
+            {[...new Set(data.accounts.map((a) => chainLabel(a.chainId)))].join(" and ")}
+          </p>
+        </div>
+        {isOwner &&
+          (frozen ? (
+            <Button disabled={!!busy} onClick={() => act("unfreeze", main.chainId, { address: main.address, abi: greenlightAccountAbi, functionName: "unfreeze" })}>
+              {busy === "unfreeze" ? "Restarting…" : "Unfreeze the agent"}
+            </Button>
+          ) : (
+            <Button tone="danger" disabled={!!busy} onClick={() => act("freeze", main.chainId, { address: main.address, abi: greenlightAccountAbi, functionName: "freeze" })}>
+              {busy === "freeze" ? "Freezing…" : "Freeze everywhere"}
+            </Button>
+          ))}
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      {frozen && (
+        <div className="rounded-2xl border border-stop/25 bg-stop-soft px-5 py-4 text-[14px] text-ink">
+          <b>{lastFreeze ? reasonText[lastFreeze.reason] : "The agent is frozen"}.</b> It cannot trade on any chain until the
+          owner restarts it, and it will restart at its lowest limit.
+        </div>
+      )}
+      {actError && <div className="rounded-2xl bg-stop-soft px-5 py-3 text-[14px] text-stop">{actError}</div>}
+
+      {/* limit + approvals */}
+      <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
+        <Card className="p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="text-[13px] text-mute">Daily limit it has earned</div>
+              <div className="num mt-1 text-[44px] font-semibold leading-none tracking-tight">{dollars(limitCents)}</div>
+            </div>
+            <div className="text-right text-[13px] text-ink-2">
+              Started at {dollars(policy.startLimitCents)}
+              <br />
+              Resets at midnight UTC
+            </div>
+          </div>
+          <div className="mt-6">
+            <LimitMeter size="lg" limitCents={limitCents} floorCents={policy.floorCents} ceilingCents={policy.ceilingCents} usedCents={usedCents} frozen={frozen} />
+          </div>
+          <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-5 sm:grid-cols-3">
+            <Fact label="Left today" value={dollars(data.accounts.reduce((s, a) => s + (a.frozen ? 0 : a.remainingCents), 0))} />
+            <Fact
+              label="Record"
+              value={`${book?.wins ?? 0} won · ${book?.losses ?? 0} lost`}
+              sub={
+                book?.winStreak
+                  ? `${book.winStreak} of ${policy.raiseAfterWins} wins to a raise`
+                  : book?.lossStreak
+                    ? `${book.lossStreak} of ${policy.freezeAfterLosses} losses to a freeze`
+                    : `Judged ${duration(policy.scoreWindow)} after each trade`
+              }
+            />
+            <Fact
+              label="Result so far"
+              value={<span className={pnl < 0 ? "text-stop" : "text-go-deep"}>{`${pnl < 0 ? "−" : "+"}${dollars(Math.abs(pnl))}`}</span>}
+              sub={data.price ? `ETH ${price(data.price.value)}` : undefined}
+            />
+          </dl>
+        </Card>
+        <Approvals accounts={data.accounts} isOwner={isOwner} act={act} busy={busy} />
+      </div>
+
+      {/* thinking + chart */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.45fr]">
+        <Decisions decisions={data.decisions} />
         <Card>
-          <CardHead title="Daily limit over time" hint="Each point is a decision by the scorer on Reactive Network." />
+          <CardHead title="Limit over time" hint="Every change was decided by the scorer on Reactive Network." />
           <div className="p-4">
             <LimitChart points={limitPoints} floor={policy.floorCents} ceiling={policy.ceilingCents} />
           </div>
         </Card>
-        <Requests accounts={data.accounts} isOwner={isOwner} act={act} busy={busy} />
       </div>
 
-      <Accounts accounts={data.accounts} bookSeq={book?.seq ?? 0} isOwner={isOwner} act={act} busy={busy} />
-
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <Timeline items={data.timeline} />
+      {/* activity + accounts */}
+      <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
+        <Activity items={data.timeline} />
         <div className="space-y-6">
-          <Deliveries deliveries={data.deliveries} />
-          <Decisions decisions={data.decisions} />
+          <Speed items={data.timeline} />
+          <Accounts accounts={data.accounts} bookSeq={book?.seq ?? 0} isOwner={isOwner} act={act} busy={busy} />
         </div>
       </div>
     </div>
   );
 }
 
-type Act = ReturnType<typeof useAct>["act"];
+function Fact({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[12px] text-mute">{label}</dt>
+      <dd className="num mt-1 text-[17px] font-semibold leading-tight">{value}</dd>
+      {sub && <dd className="mt-1 text-[12px] leading-snug text-mute">{sub}</dd>}
+    </div>
+  );
+}
 
-function Requests({ accounts, isOwner, act, busy }: { accounts: AccountView[]; isOwner: boolean; act: Act; busy: string | null }) {
+function Approvals({ accounts, isOwner, act, busy }: { accounts: AccountView[]; isOwner: boolean; act: Act; busy: string | null }) {
   const open = accounts.flatMap((a) => a.openRequests.map((r) => ({ ...r, account: a })));
   return (
-    <Card>
-      <CardHead title="Waiting for approval" hint="Trades the agent may not make on its own." />
+    <Card className={open.length ? "border-wait/40" : ""}>
+      <CardHead
+        title={open.length ? `Waiting for the owner (${open.length})` : "Waiting for the owner"}
+        hint="Trades the agent is not allowed to make on its own."
+      />
       {open.length === 0 ? (
-        <p className="px-5 py-10 text-center text-[14px] text-mute">Nothing is waiting.</p>
+        <div className="px-6 py-10 text-center">
+          <div className="text-[15px] font-medium">Nothing needs a decision</div>
+          <p className="mt-1 text-[13px] text-mute">Trades over the limit, or not signed by the enclave, will appear here.</p>
+        </div>
       ) : (
         <ul className="divide-y divide-line">
           {open.map((r) => (
-            <li key={`${r.account.address}-${r.id}`} className="px-5 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="font-semibold">
-                  {r.side === "buy" ? "Buy" : "Sell"} {dollars(r.amountCents)} of ETH
+            <li key={`${r.account.address}-${r.id}`} className="px-6 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[15px] font-semibold">
+                    {r.side === "buy" ? "Buy" : "Sell"} {dollars(r.amountCents)} of ETH
+                  </div>
+                  <div className="mt-0.5 text-[13px] text-ink-2">
+                    {r.verified ? "Bigger than what is left of today's limit" : "Suggested by the backup model, so it was not signed"}
+                  </div>
                 </div>
-                <Badge tone="wait">{r.verified ? "Over the limit" : "Not signed by the enclave"}</Badge>
+                <ChainChip chainId={r.account.chainId} />
               </div>
-              <div className="mt-1 text-[13px] text-mute">
-                At about {price(r.refPriceCents / 100)} on {chainName(r.account.chainId)} · expires {ago(r.deadline).replace(" ago", "")}{" "}
-                {r.deadline > Date.now() / 1000 ? "from now" : ""}
+              <div className="mt-2 text-[12px] text-mute">
+                Near {price(r.refPriceCents / 100)} · expires in {duration(Math.max(0, Math.round(r.deadline - Date.now() / 1000)))}
               </div>
-              {isOwner && (
+              {isOwner ? (
                 <div className="mt-3 flex gap-2">
                   <Button
                     disabled={!!busy}
-                    onClick={() =>
-                      act(`approve-${r.id}`, r.account.chainId, {
-                        address: r.account.address,
-                        abi: greenlightAccountAbi,
-                        functionName: "approve",
-                        args: [BigInt(r.id)],
-                      })
-                    }
+                    onClick={() => act(`approve-${r.id}`, r.account.chainId, { address: r.account.address, abi: greenlightAccountAbi, functionName: "approve", args: [BigInt(r.id)] })}
                   >
                     {busy === `approve-${r.id}` ? "Approving…" : "Approve"}
                   </Button>
                   <Button
                     tone="ghost"
                     disabled={!!busy}
-                    onClick={() =>
-                      act(`reject-${r.id}`, r.account.chainId, {
-                        address: r.account.address,
-                        abi: greenlightAccountAbi,
-                        functionName: "reject",
-                        args: [BigInt(r.id)],
-                      })
-                    }
+                    onClick={() => act(`reject-${r.id}`, r.account.chainId, { address: r.account.address, abi: greenlightAccountAbi, functionName: "reject", args: [BigInt(r.id)] })}
                   >
                     Reject
                   </Button>
                 </div>
+              ) : (
+                <p className="mt-2 text-[12px] text-mute">Only the owner can approve or reject this.</p>
               )}
             </li>
           ))}
@@ -254,223 +251,38 @@ function Requests({ accounts, isOwner, act, busy }: { accounts: AccountView[]; i
   );
 }
 
-function Accounts({
-  accounts,
-  bookSeq,
-  isOwner,
-  act,
-  busy,
-}: {
-  accounts: AccountView[];
-  bookSeq: number;
-  isOwner: boolean;
-  act: Act;
-  busy: string | null;
-}) {
+function Decisions({ decisions }: { decisions: Decision[] }) {
   return (
     <Card>
-      <CardHead title="Accounts" hint="The same agent and limit on every chain, kept in step by the scorer." />
-      <div className="grid divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
-        {accounts.map((a) => {
-          const behind = a.appliedSeq < bookSeq;
-          const venue = chainById(a.chainId)?.venue;
-          return (
-            <div key={a.address} className="space-y-3 p-5">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">{a.chainName}</div>
-                {a.frozen ? <Badge tone="stop">Frozen</Badge> : behind ? <Badge tone="wait">Update on its way</Badge> : <Badge tone="go">In step</Badge>}
-              </div>
-              <dl className="grid grid-cols-2 gap-y-1.5 text-[14px]">
-                <dt className="text-mute">Limit</dt>
-                <dd className="num text-right">{dollars(a.limitCents)}</dd>
-                <dt className="text-mute">Left today</dt>
-                <dd className="num text-right">{dollars(a.remainingCents)}</dd>
-                <dt className="text-mute">Test dollars</dt>
-                <dd className="num text-right">{a.usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}</dd>
-                <dt className="text-mute">Test ether</dt>
-                <dd className="num text-right">{a.eth.toFixed(4)}</dd>
-                <dt className="text-mute">Update fees left</dt>
-                <dd className="num text-right">{a.gas.toFixed(4)} ETH</dd>
-                <dt className="text-mute">AI signer</dt>
-                <dd className="num truncate text-right" title={`${a.modelId} · ${a.teeSigner}`}>
-                  {short(a.teeSigner)}
-                </dd>
-              </dl>
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <a href={addressUrl(a.chainId, a.address)} target="_blank" rel="noreferrer" className="text-[13px] font-medium text-info hover:underline">
-                  {short(a.address)} ↗
-                </a>
-                {isOwner && venue && (
-                  <button
-                    disabled={!!busy}
-                    onClick={() =>
-                      act(`faucet-${a.chainId}`, a.chainId, {
-                        address: venue,
-                        abi: greenlightVenueAbi,
-                        functionName: "faucet",
-                        args: [a.address],
-                      })
-                    }
-                    className="text-[13px] font-medium text-go-deep hover:underline disabled:opacity-50"
-                  >
-                    {busy === `faucet-${a.chainId}` ? "Adding…" : "Add test dollars"}
-                  </button>
-                )}
-                {behind && (
-                  <button
-                    disabled={!!busy}
-                    onClick={() =>
-                      act(`resync-${a.chainId}`, a.chainId, { address: a.address, abi: greenlightAccountAbi, functionName: "requestResync" })
-                    }
-                    className="text-[13px] font-medium text-info hover:underline disabled:opacity-50"
-                  >
-                    Ask for the latest limit
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-function describe(t: TimelineItem): { text: string; tone: "go" | "wait" | "stop" | "info" | "mute" } | null {
-  switch (t.kind) {
-    case "joined":
-      return { text: `Account opened on ${chainName(t.chainId)}`, tone: "mute" };
-    case "trade":
-      return {
-        text: `${t.side === "buy" ? "Bought" : "Sold"} ${dollars(t.amountCents)} of ETH at ${price(t.price)}${
-          t.ownerApproved ? ", approved by the owner" : t.verified ? ", signed by the enclave" : ""
-        }`,
-        tone: "info",
-      };
-    case "request":
-      return {
-        text: `Asked to ${t.side} ${dollars(t.amountCents)} of ETH: ${t.verified ? "over the limit" : "not signed"}, waiting for the owner`,
-        tone: "wait",
-      };
-    case "resolved":
-      return { text: `Owner ${t.approved ? "approved" : "rejected"} request #${t.id}`, tone: "mute" };
-    case "scored":
-      return {
-        text: `Trade #${t.tradeId} judged: ${t.returnBps >= 0 ? "+" : ""}${(t.returnBps / 100).toFixed(2)}% (${t.pnlCents >= 0 ? "+" : "−"}${dollars(
-          Math.abs(t.pnlCents),
-        )}), from ${price(t.entryPrice)} to ${price(t.exitPrice)}`,
-        tone: t.pnlCents > 0 ? "go" : t.pnlCents < 0 ? "stop" : "mute",
-      };
-    case "limit":
-      return {
-        text: `${reasonText[t.reason] ?? "Limit updated"}${t.frozen ? "" : `: limit now ${dollars(t.limitCents)}`}`,
-        tone: t.frozen ? "stop" : t.reason === 3 ? "go" : t.reason === 4 ? "wait" : "mute",
-      };
-    case "owner":
-      return { text: t.frozen ? "Owner froze the agent" : "Owner unfroze the agent", tone: t.frozen ? "stop" : "go" };
-    case "policy":
-      return { text: "Owner changed the rules", tone: "mute" };
-    default:
-      return null;
-  }
-}
-
-const dot = { go: "bg-go", wait: "bg-wait", stop: "bg-stop", info: "bg-info", mute: "bg-line-2" };
-
-function Timeline({ items }: { items: TimelineItem[] }) {
-  const rows = items
-    .map((t) => ({ t, d: describe(t) }))
-    .filter((r): r is { t: TimelineItem; d: NonNullable<ReturnType<typeof describe>> } => r.d !== null)
-    .reverse()
-    .slice(0, 60);
-  return (
-    <Card>
-      <CardHead title="Everything that happened" hint="Newest first. Each line is a transaction you can open." />
-      <ol className="divide-y divide-line">
-        {rows.map(({ t, d }) => (
-          <li key={`${t.tx}-${t.kind}-${t.time}`} className="flex items-start gap-3 px-5 py-3">
-            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot[d.tone]}`} />
-            <div className="min-w-0 flex-1">
-              <div className="text-[14px] text-ink">{d.text}</div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-mute">
-                <span>{chainName(t.chainId)}</span>
-                <span>·</span>
-                <span>{when(t.time)}</span>
-                <span>·</span>
-                <a href={txUrl(t.chainId, t.tx)} target="_blank" rel="noreferrer" className="hover:text-info">
-                  transaction ↗
-                </a>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </Card>
-  );
-}
-
-function Deliveries({ deliveries }: { deliveries: Delivery[] }) {
-  const rows = [...deliveries].reverse().slice(0, 8);
-  return (
-    <Card>
-      <CardHead title="How fast changes arrive" hint="From the scorer's decision on Reactive Network to each chain." />
-      {rows.length === 0 ? (
-        <p className="px-5 py-8 text-center text-[14px] text-mute">No changes yet.</p>
-      ) : (
-        <ul className="divide-y divide-line">
-          {rows.map((d) => (
-            <li key={d.seq} className="px-5 py-3">
-              <div className="flex items-center justify-between gap-3 text-[14px]">
-                <span className="text-ink">{reasonText[d.reason]}</span>
-                <TxLink href={txUrl(lasna.chain.id, d.decidedTx)}>#{d.seq}</TxLink>
-              </div>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {d.origin && <Badge tone="mute">Owner to scorer {duration(Math.max(0, d.decidedAt - d.origin.time))}</Badge>}
-                {d.arrivals.length === 0 ? (
-                  <Badge tone="wait">On its way</Badge>
-                ) : (
-                  d.arrivals.map((a) => (
-                    <a key={a.tx} href={txUrl(a.chainId, a.tx)} target="_blank" rel="noreferrer">
-                      <Badge tone="go">
-                        {chainName(a.chainId)} in {duration(Math.max(0, a.time - d.decidedAt))}
-                      </Badge>
-                    </a>
-                  ))
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
-function Decisions({ decisions }: { decisions: Data["decisions"] }) {
-  return (
-    <Card>
-      <CardHead title="The agent's thinking" hint="Every decision, including the times it chose to wait." />
+      <CardHead title="What the agent is thinking" hint="Every decision, including when it chose to wait." />
       {decisions.length === 0 ? (
-        <p className="px-5 py-8 text-center text-[14px] text-mute">No decisions recorded yet.</p>
+        <p className="px-6 py-10 text-center text-[14px] text-mute">The agent decides every 10 minutes. Its reasoning appears here.</p>
       ) : (
         <ul className="divide-y divide-line">
-          {decisions.slice(0, 10).map((d, i) => (
-            <li key={i} className="px-5 py-3">
+          {decisions.slice(0, 6).map((d) => (
+            <li key={d.createdAt} className="px-6 py-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[14px] font-semibold capitalize">{d.action === "hold" ? "Waited" : d.action}</span>
-                <span className="flex gap-1.5">
-                  {d.source === "near-tee" ? <Badge tone="go">Enclave</Badge> : <Badge tone="wait">Backup model</Badge>}
-                  <Badge tone="mute">{(d.latencyMs / 1000).toFixed(0)}s</Badge>
+                <span className="text-[14px] font-semibold">
+                  {d.action === "hold" ? "Waited" : `${d.action === "buy" ? "Buy" : "Sell"} ${d.orderText ? dollars(Number(d.orderText.split(":")[2])) : ""}`}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    d.source === "near-tee" ? "bg-go-soft text-go-deep" : "bg-wait-soft text-wait"
+                  }`}
+                >
+                  {d.source === "near-tee" ? "Signed in enclave" : "Backup model"}
                 </span>
               </div>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{d.reason}</p>
-              <div className="mt-1 text-[12px] text-mute">
-                {ago(new Date(d.createdAt).getTime() / 1000)} · {d.outcome}
+              <p className="mt-1.5 text-[14px] leading-relaxed text-ink-2">{d.reason}</p>
+              <div className="mt-1.5 flex flex-wrap gap-x-2 text-[12px] text-mute">
+                <span>{ago(new Date(d.createdAt).getTime() / 1000)}</span>
+                <span>·</span>
+                <span>{outcomeText(d.outcome)}</span>
                 {d.tx && (
                   <>
-                    {" · "}
+                    <span>·</span>
                     <a href={txUrl(d.chainId, d.tx)} target="_blank" rel="noreferrer" className="hover:text-info">
-                      transaction ↗
+                      Proof ↗
                     </a>
                   </>
                 )}
@@ -483,10 +295,196 @@ function Decisions({ decisions }: { decisions: Data["decisions"] }) {
   );
 }
 
+function outcomeText(o: string): string {
+  if (o === "executed") return "Trade made";
+  if (o === "held") return "No trade";
+  if (o.startsWith("waiting")) return "Sent to the owner";
+  if (o === "invalid order") return "Answer could not be used";
+  return o.charAt(0).toUpperCase() + o.slice(1);
+}
+
+function describe(t: TimelineItem): { text: string; tone: "go" | "wait" | "stop" | "info" | "mute" } | null {
+  switch (t.kind) {
+    case "joined":
+      return { text: "Account opened", tone: "mute" };
+    case "trade":
+      return {
+        text: `${t.side === "buy" ? "Bought" : "Sold"} ${dollars(t.amountCents)} of ETH at ${price(t.price)}${t.ownerApproved ? ", approved by the owner" : ""}`,
+        tone: "info",
+      };
+    case "request":
+      return { text: `Asked the owner to ${t.side} ${dollars(t.amountCents)} of ETH`, tone: "wait" };
+    case "resolved":
+      return { text: t.approved ? "Owner approved a trade" : "Owner rejected a trade", tone: "mute" };
+    case "scored":
+      return {
+        text: `Trade judged ${t.pnlCents > 0 ? "a win" : t.pnlCents < 0 ? "a loss" : "even"}: ${t.returnBps >= 0 ? "+" : ""}${(t.returnBps / 100).toFixed(2)}% (${t.pnlCents >= 0 ? "+" : "−"}${dollars(Math.abs(t.pnlCents))})`,
+        tone: t.pnlCents > 0 ? "go" : t.pnlCents < 0 ? "stop" : "mute",
+      };
+    case "limit":
+      return {
+        text: t.frozen ? reasonText[t.reason] : `${reasonText[t.reason] ?? "Limit updated"}: ${dollars(t.limitCents)}`,
+        tone: t.frozen ? "stop" : t.reason === 3 ? "go" : t.reason === 4 ? "wait" : "mute",
+      };
+    case "synced":
+      return { text: t.frozen ? "Freeze applied" : `Limit applied: ${dollars(t.limitCents)}`, tone: "mute" };
+    case "owner":
+      return { text: t.frozen ? "Owner froze the agent" : "Owner restarted the agent", tone: t.frozen ? "stop" : "go" };
+    case "policy":
+      return { text: "Owner changed the rules", tone: "mute" };
+    default:
+      return null;
+  }
+}
+
+const dot = { go: "bg-go", wait: "bg-wait", stop: "bg-stop", info: "bg-info", mute: "bg-line-2" };
+
+function Activity({ items }: { items: TimelineItem[] }) {
+  const [all, setAll] = useState(false);
+  const rows = items
+    .map((t) => ({ t, d: describe(t) }))
+    .filter((r): r is { t: TimelineItem; d: NonNullable<ReturnType<typeof describe>> } => r.d !== null)
+    .reverse();
+  const shown = all ? rows : rows.slice(0, 12);
+  return (
+    <Card>
+      <CardHead title="Activity" hint="Newest first. Every line links to its transaction." />
+      <ol className="divide-y divide-line">
+        {shown.map(({ t, d }, i) => (
+          <li key={`${t.tx}-${t.kind}-${i}`} className="flex items-start gap-3 px-6 py-3.5">
+            <span className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${dot[d.tone]}`} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[14px] text-ink">{d.text}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-mute">
+                <ChainChip chainId={t.chainId} />
+                <span>{when(t.time)}</span>
+                <a href={txUrl(t.chainId, t.tx)} target="_blank" rel="noreferrer" className="hover:text-info">
+                  Proof ↗
+                </a>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+      {rows.length > 12 && (
+        <button onClick={() => setAll(!all)} className="w-full border-t border-line py-3 text-[13px] font-semibold text-go-deep hover:bg-paper">
+          {all ? "Show less" : `Show all ${rows.length}`}
+        </button>
+      )}
+    </Card>
+  );
+}
+
+function Speed({ items }: { items: TimelineItem[] }) {
+  const m = medianDelivery(items);
+  const recent = items
+    .filter((t): t is Extract<TimelineItem, { kind: "limit" }> => t.kind === "limit")
+    .reverse()
+    .slice(0, 4)
+    .map((l) => ({
+      l,
+      arrivals: items.filter((s): s is Extract<TimelineItem, { kind: "synced" }> => s.kind === "synced" && s.seq === l.seq),
+    }));
+  return (
+    <Card>
+      <CardHead title="How fast changes arrive" hint="From the scorer's decision to each chain." />
+      <div className="px-6 pt-5">
+        <div className="num text-[32px] font-semibold leading-none">{m ? `${m.median}s` : "—"}</div>
+        <div className="mt-1 text-[13px] text-mute">{m ? `typical, across ${m.count} update${m.count === 1 ? "" : "s"}` : "No changes yet"}</div>
+      </div>
+      <ul className="mt-4 divide-y divide-line border-t border-line">
+        {recent.map(({ l, arrivals }) => (
+          <li key={l.seq} className="flex items-center justify-between gap-3 px-6 py-3 text-[13px]">
+            <span className="text-ink">{reasonText[l.reason]}</span>
+            <span className="flex flex-wrap justify-end gap-1.5">
+              {arrivals.length === 0 ? (
+                <span className="text-wait">On its way</span>
+              ) : (
+                arrivals.map((a) => (
+                  <a key={a.tx} href={txUrl(a.chainId, a.tx)} target="_blank" rel="noreferrer" className="num font-medium text-go-deep hover:underline">
+                    {chainLabel(a.chainId)} {Math.max(0, a.time - l.time)}s
+                  </a>
+                ))
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function Accounts({ accounts, bookSeq, isOwner, act, busy }: { accounts: AccountView[]; bookSeq: number; isOwner: boolean; act: Act; busy: string | null }) {
+  return (
+    <Card>
+      <CardHead title="Accounts" hint="The same agent and limit on every chain." />
+      <ul className="divide-y divide-line">
+        {accounts.map((a) => {
+          const behind = a.appliedSeq < bookSeq;
+          const venue = chainById(a.chainId)?.venue;
+          return (
+            <li key={a.address} className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[15px] font-semibold">{a.chainName}</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    a.frozen ? "bg-stop-soft text-stop" : behind ? "bg-wait-soft text-wait" : "bg-go-soft text-go-deep"
+                  }`}
+                >
+                  {a.frozen ? "Frozen" : behind ? "Updating" : "Up to date"}
+                </span>
+              </div>
+              <dl className="mt-3 grid grid-cols-2 gap-y-1.5 text-[13px]">
+                <dt className="text-mute">Cash</dt>
+                <dd className="num text-right">{a.usd.toLocaleString("en-US", { maximumFractionDigits: 2 })} test USD</dd>
+                <dt className="text-mute">ETH held</dt>
+                <dd className="num text-right">{a.eth.toFixed(4)}</dd>
+                <dt className="text-mute">Balance for updates</dt>
+                <dd className="num text-right">{a.gas.toFixed(4)} ETH</dd>
+                <dt className="text-mute">Decisions accepted from</dt>
+                <dd className="text-right" title={`${a.modelId} · ${a.teeSigner}`}>
+                  NEAR AI enclave
+                </dd>
+              </dl>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold">
+                <a href={addressUrl(a.chainId, a.address)} target="_blank" rel="noreferrer" className="text-info hover:underline">
+                  View account ↗
+                </a>
+                {isOwner && venue && (
+                  <button
+                    disabled={!!busy}
+                    onClick={() => act(`faucet-${a.chainId}`, a.chainId, { address: venue, abi: greenlightVenueAbi, functionName: "faucet", args: [a.address] })}
+                    className="text-go-deep hover:underline disabled:opacity-50"
+                  >
+                    {busy === `faucet-${a.chainId}` ? "Adding…" : "Add test dollars"}
+                  </button>
+                )}
+                {behind && (
+                  <button
+                    disabled={!!busy}
+                    onClick={() => act(`resync-${a.chainId}`, a.chainId, { address: a.address, abi: greenlightAccountAbi, functionName: "requestResync" })}
+                    className="text-info hover:underline disabled:opacity-50"
+                  >
+                    Fetch the latest limit
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+function Empty({ text }: { text: string }) {
+  return <p className="mx-auto max-w-md py-24 text-center text-[16px] text-ink-2">{text}</p>;
+}
+
 function Skeleton() {
   return (
     <div className="space-y-6 pt-8">
-      {[80, 120, 260].map((h) => (
+      {[64, 240, 260].map((h) => (
         <div key={h} className="animate-pulse rounded-2xl border border-line bg-card" style={{ height: h }} />
       ))}
     </div>

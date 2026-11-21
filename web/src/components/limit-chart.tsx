@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { dollars, reasonText, when } from "@/lib/format";
 
 export interface LimitPoint {
@@ -13,9 +13,18 @@ export interface LimitPoint {
 /** The agent's daily limit over time, as a step line between the owner's floor and ceiling. */
 export function LimitChart({ points, floor, ceiling }: { points: LimitPoint[]; floor: number; ceiling: number }) {
   const ref = useRef<SVGSVGElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
-  const W = 640;
-  const H = 200;
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    // Draw at the container's real width so labels keep their size on phones.
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = W < 480 ? 180 : 200;
   const pad = { l: 56, r: 16, t: 14, b: 28 };
 
   const geo = useMemo(() => {
@@ -30,9 +39,14 @@ export function LimitChart({ points, floor, ceiling }: { points: LimitPoint[]; f
     for (let i = 1; i < points.length; i++) d += `H${x(points[i].time)}V${y(points[i].limitCents)}`;
     d += `H${x(t1)}`;
     return { x, y, d, t0, t1 };
-  }, [points, ceiling, pad.l, pad.r, pad.t, pad.b]);
+  }, [points, ceiling, W, H, pad.l, pad.r, pad.t, pad.b]);
 
-  if (!geo) return <p className="px-5 py-10 text-center text-[14px] text-mute">The limit has not changed yet.</p>;
+  if (!geo)
+    return (
+      <div ref={box}>
+        <p className="px-5 py-10 text-center text-[14px] text-mute">The limit has not changed yet.</p>
+      </div>
+    );
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const box = ref.current!.getBoundingClientRect();
@@ -44,7 +58,7 @@ export function LimitChart({ points, floor, ceiling }: { points: LimitPoint[]; f
   const h = hover === null ? null : points[hover];
 
   return (
-    <div className="relative">
+    <div ref={box} className="relative">
       <svg
         ref={ref}
         viewBox={`0 0 ${W} ${H}`}

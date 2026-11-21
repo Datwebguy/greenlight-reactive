@@ -9,6 +9,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ address: strin
   const { address } = await ctx.params;
   if (!isAddress(address)) return NextResponse.json({ error: "not an address" }, { status: 400 });
   const owner = getAddress(address);
-  const [view, decisions] = await Promise.all([readOwner(owner), recentDecisions(owner, 40).catch(() => [])]);
+  const view = await readOwner(owner);
+  const decisions = await recentDecisions(view.accounts.map((a) => ({ chainId: a.chainId, address: a.address }))).catch(
+    () => [],
+  );
   return NextResponse.json({ ...view, decisions });
 }

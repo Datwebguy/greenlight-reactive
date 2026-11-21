@@ -4,7 +4,9 @@
   "description": "Earned autonomy for AI trading agents, settled by a Reactive contract",
   "scripts": {
     "build": "hardhat compile",
-    "test": "hardhat test solidity"
+    "test": "hardhat test solidity",
+    "deploy": "hardhat compile && node --env-file=../.greenlight-secrets/testnet.env scripts/deploy.ts",
+    "balances": "node --env-file=../.greenlight-secrets/testnet.env scripts/balances.ts"
   },
   "repository": {
     "type": "git",

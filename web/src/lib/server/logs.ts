@@ -72,7 +72,15 @@ export async function readLogs(opts: {
         toBlock: to,
         strict: true,
       })) as unknown as TimedLog[];
-      for (const l of found) e.logs.push({ ...l, chainId });
+      // Some RPCs omit the block time on logs; read it from the block instead.
+      const missing = [...new Set(found.filter((l) => !l.blockTimestamp).map((l) => l.blockNumber!))];
+      const times = new Map<bigint, bigint>();
+      await Promise.all(
+        missing.map(async (n) => times.set(n, (await client.getBlock({ blockNumber: n })).timestamp)),
+      );
+      for (const l of found) {
+        e.logs.push({ ...l, chainId, blockTimestamp: l.blockTimestamp ?? times.get(l.blockNumber!) });
+      }
       e.scannedTo = to;
       from = to + 1n;
     }

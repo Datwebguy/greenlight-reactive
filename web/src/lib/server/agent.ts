@@ -80,8 +80,9 @@ export function buildPrompt(opts: {
     `Each trade is judged ${windowMin} minutes after it is made against the Chainlink price.`,
     `If ${account.policy.raiseAfterWins} trades in a row go your way your limit grows; every losing trade shrinks it,`,
     `and ${account.policy.freezeAfterLosses} losses in a row freeze you until the owner steps in.`,
-    "Trade only when the recent prices give you a real reason to expect a move within the judging window;",
-    "holding is often the right call. Reply with JSON only.",
+    "Winning trades are the only way to earn a higher limit, so sitting out every round earns you nothing;",
+    "but a losing trade costs you, so trade only when the recent prices give you a reason to expect a move",
+    "within the judging window, and prefer the smallest size when you are unsure. Reply with JSON only.",
   ].join(" ");
   const user = [
     `Recent ETH/USD prices from Chainlink (UTC, USD): ${history.map((h) => `${clock(h.time)} ${h.price.toFixed(2)}`).join(", ")}.`,
@@ -104,6 +105,8 @@ export interface TickResult {
   account: Address;
   outcome: string;
   action?: Decision["action"];
+  source?: "near-tee" | "openai";
+  latencyMs?: number;
   tx?: string;
   reason?: string;
 }
@@ -230,7 +233,7 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
   if (decision.action === "hold" || !options.includes(decision.order)) {
     const outcome = decision.action === "hold" ? "held" : "invalid order";
     await record(outcome, null);
-    return { chainId: view.chainId, account: view.address, outcome, action: decision.action, reason: decision.reason };
+    return { chainId: view.chainId, account: view.address, outcome, action: decision.action, source, latencyMs, reason: decision.reason };
   }
 
   const [, side, amount, ref] = decision.order.split(":");
@@ -264,5 +267,5 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
     }
   }
   await record(outcome, hash);
-  return { chainId: view.chainId, account: view.address, outcome, action: decision.action, tx: hash, reason: decision.reason };
+  return { chainId: view.chainId, account: view.address, outcome, action: decision.action, source, latencyMs, tx: hash, reason: decision.reason };
 }

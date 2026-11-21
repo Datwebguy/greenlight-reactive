@@ -6,6 +6,8 @@
  * Writes every address and transaction hash to deployments/<network-set>.json.
  *
  * Usage: node --env-file=<secrets> scripts/deploy.ts
+ * DEPLOY_CHAINS=84532 limits the run to some trading chains; run again later to add others. Finished steps are
+ * read from deployments/testnet.json and skipped.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -24,7 +26,7 @@ const key = process.env.DEPLOYER_PRIVATE_KEY as Hex | undefined;
 if (!key) throw new Error("DEPLOYER_PRIVATE_KEY is not set");
 const account = privateKeyToAccount(key);
 
-const scorerFunding = parseEther(process.env.SCORER_FUNDING_REACT ?? "20");
+const scorerFunding = parseEther(process.env.SCORER_FUNDING_REACT ?? "10");
 const callbackGasLimit = BigInt(process.env.CALLBACK_GAS_LIMIT ?? "300000");
 const maxSettlePerPrice = BigInt(process.env.MAX_SETTLE_PER_PRICE ?? "4");
 
@@ -74,8 +76,9 @@ out.scorer ??= {
 };
 save();
 
+const only = process.env.DEPLOY_CHAINS?.split(",").map((x) => Number(x.trim()));
 out.chains ??= {};
-for (const chain of chains) {
+for (const chain of chains.filter((c) => !only || only.includes(c.viem.id))) {
   const entry = (out.chains[chain.viem.id] ??= { name: chain.viem.name });
   entry.venue ??= await deploy(chain, "GreenlightVenue", [chain.priceFeed, BigInt(chain.maxPriceAge), chain.faucetAmount]);
   save();

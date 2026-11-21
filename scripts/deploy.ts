@@ -11,7 +11,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { createPublicClient, createWalletClient, http, parseEther, type Abi, type Hex, type Address } from "viem";
+import { createPublicClient, createWalletClient, http, parseEther, parseGwei, type Abi, type Hex, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { chains, lasna, type TradingChain } from "./networks.ts";
 
@@ -30,6 +30,10 @@ const scorerFunding = parseEther(process.env.SCORER_FUNDING_REACT ?? "10");
 const callbackGasLimit = BigInt(process.env.CALLBACK_GAS_LIMIT ?? "300000");
 const maxSettlePerPrice = BigInt(process.env.MAX_SETTLE_PER_PRICE ?? "4");
 
+// Lasna refuses transactions without a priority fee, which viem estimates as zero there.
+const fees = (chain: typeof lasna | TradingChain) =>
+  chain.viem.id === lasna.viem.id ? { maxPriorityFeePerGas: parseGwei("1") } : {};
+
 const outFile = path.join(root, "deployments", "testnet.json");
 const out: Record<string, any> = fs.existsSync(outFile) ? JSON.parse(fs.readFileSync(outFile, "utf8")) : {};
 const save = () => {
@@ -43,7 +47,7 @@ async function deploy(chain: typeof lasna | TradingChain, name: string, args: un
   const pub = createPublicClient({ chain: chain.viem, transport });
   const wallet = createWalletClient({ chain: chain.viem, transport, account });
   const { abi, bytecode } = artifact(name);
-  const hash = await wallet.deployContract({ abi, bytecode, args, value });
+  const hash = await wallet.deployContract({ abi, bytecode, args, value, ...fees(chain) });
   const receipt = await pub.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success" || !receipt.contractAddress) throw new Error(`${name} deployment failed: ${hash}`);
   console.log(`${chain.viem.name}: ${name} ${receipt.contractAddress} (${hash})`);
@@ -54,7 +58,7 @@ async function send(chain: typeof lasna, to: Address, name: string, fn: string, 
   const transport = http(chain.rpcUrl);
   const pub = createPublicClient({ chain: chain.viem, transport });
   const wallet = createWalletClient({ chain: chain.viem, transport, account });
-  const hash = await wallet.writeContract({ address: to, abi: artifact(name).abi, functionName: fn, args });
+  const hash = await wallet.writeContract({ address: to, abi: artifact(name).abi, functionName: fn, args, ...fees(chain) });
   const receipt = await pub.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success") throw new Error(`${fn} failed: ${hash}`);
   console.log(`${chain.viem.name}: ${fn}(${args.join(", ")}) (${hash})`);

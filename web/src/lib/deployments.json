@@ -1,1 +1,26 @@
-{}
+{
+  "scorer": {
+    "chainId": 5318007,
+    "address": "0x02813ffb18bc3f994836d3dfc3c223108be17dda",
+    "tx": "0xd917bb9ede9da83a8b88ef8de23639d73c0fae4d00ecc3799d34ac917ed79afb",
+    "block": 8919569,
+    "priceChainId": 84532,
+    "aggregator": "0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3"
+  },
+  "chains": {
+    "84532": {
+      "name": "Base Sepolia",
+      "venue": {
+        "address": "0x02813ffb18bc3f994836d3dfc3c223108be17dda",
+        "tx": "0x841882275ea2ff9669d8f73f4edd0b876dfa03f1267b0d60a399c0817db07e3d",
+        "block": 61854097
+      },
+      "factory": {
+        "address": "0xf0b6692c893f9ea0a93c1581f3756e3521c701d6",
+        "tx": "0xffa849376379983b783a9b281d7a5f0d6f14444e906c2c00b1f3f1737d345f5c",
+        "block": 61854148
+      },
+      "registerTx": "0x645a4c80da254abd37e62bfb547b49f5a54654314decb75efa0864313230a845"
+    }
+  }
+}

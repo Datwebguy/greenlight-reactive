@@ -137,8 +137,13 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
     /// @notice True when `proof` is a response signed by the attested model and contains exactly this order.
     function isVerified(Order calldata order, Proof calldata proof) public view returns (bool) {
         bytes memory text = bytes(orderText(order));
-        if (proof.orderOffset + text.length > proof.response.length) return false;
-        if (keccak256(proof.response[proof.orderOffset:proof.orderOffset + text.length]) != keccak256(text)) {
+        uint256 start = proof.orderOffset;
+        uint256 end = start + text.length;
+        // The order must be followed by the closing quote of the answer's JSON string (escaped as \").
+        if (end >= proof.response.length || proof.response[end] != 0x5c) return false;
+        if (keccak256(proof.response[start:end]) != keccak256(text)) return false;
+        // It must sit in the model's final answer, not in its reasoning, which follows the answer.
+        if (!_contains(proof.response[:start], '"content":"') || _contains(proof.response[:start], '"reasoning')) {
             return false;
         }
         bytes memory signed = abi.encodePacked(
@@ -284,6 +289,26 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
 
     function _today() private view returns (uint64) {
         return uint64(block.timestamp / 1 days);
+    }
+
+    /// @dev True when `needle` (at most 32 bytes) occurs in `haystack`.
+    function _contains(bytes calldata haystack, bytes memory needle) private pure returns (bool found) {
+        uint256 n = needle.length;
+        if (n == 0 || n > 32 || haystack.length < n) return n == 0;
+        bytes32 want;
+        assembly {
+            want := mload(add(needle, 32))
+        }
+        bytes32 mask = ~bytes32(type(uint256).max >> (n * 8));
+        want &= mask;
+        uint256 last = haystack.length - n;
+        for (uint256 i; i <= last; ++i) {
+            bytes32 word;
+            assembly {
+                word := calldataload(add(haystack.offset, i))
+            }
+            if (word & mask == want) return true;
+        }
     }
 
     function _hex(bytes32 value) private pure returns (bytes memory out) {

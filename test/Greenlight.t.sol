@@ -214,8 +214,8 @@ contract GreenlightTest is Test {
         returns (GreenlightAccount.Proof memory p)
     {
         string memory text = a.orderText(o);
-        bytes memory prefix = bytes('{"id":"chat-1","choices":[{"message":{"content":"{\\"order\\":\\"');
-        p.response = bytes.concat(prefix, bytes(text), bytes('\\"}"}}]}'));
+        bytes memory prefix = bytes('{"id":"chat-1","choices":[{"message":{"role":"assistant","content":"{\\"action\\":\\"buy\\",\\"order\\": \\"');
+        p.response = bytes.concat(prefix, bytes(text), bytes('\\"}","reasoning_content":"thinking"}}]}'));
         p.orderOffset = prefix.length;
         p.requestHash = sha256("request bytes");
         bytes memory signed = abi.encodePacked(MODEL, ":", hexOf(p.requestHash), ":", hexOf(sha256(p.response)));
@@ -323,6 +323,32 @@ contract GreenlightTest is Test {
 
         p = signedProof(a, o, teeKey);
         o.amountCents += 1; // the order must be exactly what the model wrote
+        assertFalse(a.isVerified(o, p));
+    }
+
+    function test_orderOnlyInTheModelsReasoningIsNotVerified() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount.Order memory o = order(a, 0, 10_00);
+        string memory text = a.orderText(o);
+        bytes memory prefix = bytes(
+            '{"id":"c","choices":[{"message":{"role":"assistant","content":"{\\"action\\":\\"hold\\",\\"order\\":\\"\\"}","reasoning_content":"maybe \\"'
+        );
+        GreenlightAccount.Proof memory p;
+        p.response = bytes.concat(prefix, bytes(text), bytes('\\" but no"}}]}'));
+        p.orderOffset = prefix.length;
+        p.requestHash = sha256("request bytes");
+        bytes memory signed = abi.encodePacked(MODEL, ":", hexOf(p.requestHash), ":", hexOf(sha256(p.response)));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(teeKey, MessageHashUtils.toEthSignedMessageHash(signed));
+        p.signature = abi.encodePacked(r, s, v);
+        assertFalse(a.isVerified(o, p));
+    }
+
+    function test_orderMustEndWhereTheAnswerEnds() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount.Order memory o = order(a, 0, 10_00);
+        GreenlightAccount.Proof memory p = signedProof(a, o, teeKey);
+        assertTrue(a.isVerified(o, p));
+        o.deadline = o.deadline / 10; // a shorter number would otherwise match the start of the real one
         assertFalse(a.isVerified(o, p));
     }
 
@@ -587,5 +613,40 @@ contract GreenlightTest is Test {
         settleAt(1_690_00000000);
         assertEq(scorer.queueLength(), 0);
         assertEq(scorer.bookOf(owner).wins, 7);
+    }
+
+    // ------------------------------------------------ a real NEAR AI Cloud response
+
+    /// A decision returned and signed by NEAR AI Cloud's TEE (Qwen/Qwen3.8-27B), recorded byte for byte.
+    function test_realSignedModelResponseVerifiesOnChain() public {
+        string memory json = vm.readFile("test/fixtures/near-decision.json");
+        address signer = vm.parseJsonAddress(json, ".signingAddress");
+        string memory model = vm.parseJsonString(json, ".model");
+
+        vm.prank(owner);
+        GreenlightAccount a = factory.createAccount(agent, signer, model, policy());
+
+        GreenlightAccount.Order memory o = GreenlightAccount.Order({
+            side: uint8(vm.parseJsonUint(json, ".order.side")),
+            amountCents: uint64(vm.parseJsonUint(json, ".order.amountCents")),
+            refPriceCents: uint64(vm.parseJsonUint(json, ".order.refPriceCents")),
+            nonce: uint64(vm.parseJsonUint(json, ".order.nonce")),
+            deadline: uint64(vm.parseJsonUint(json, ".order.deadline"))
+        });
+        GreenlightAccount.Proof memory p = GreenlightAccount.Proof({
+            requestHash: vm.parseJsonBytes32(json, ".requestHash"),
+            response: vm.parseJsonBytes(json, ".response"),
+            orderOffset: vm.parseJsonUint(json, ".orderOffset"),
+            signature: vm.parseJsonBytes(json, ".signature")
+        });
+        assertTrue(a.isVerified(o, p), "real response should verify");
+
+        o.amountCents = 5_000; // the model chose $25.00, not $50.00
+        assertFalse(a.isVerified(o, p));
+        o.amountCents = uint64(vm.parseJsonUint(json, ".order.amountCents"));
+
+        vm.prank(owner);
+        a.setSigner(makeAddr("some other enclave"), model);
+        assertFalse(a.isVerified(o, p), "only the attested signer counts");
     }
 }

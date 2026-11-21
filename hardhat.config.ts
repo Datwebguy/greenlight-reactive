@@ -10,6 +10,11 @@ export default defineConfig({
       evmVersion: "cancun",
     },
   },
+  test: {
+    solidity: {
+      fsPermissions: { readFile: ["test/fixtures/near-decision.json"] },
+    },
+  },
   networks: {
     baseSepolia: {
       type: "http",

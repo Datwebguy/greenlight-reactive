@@ -1,0 +1,27 @@
+{
+  "name": "greenlight-reactive",
+  "version": "1.0.0",
+  "description": "Earned autonomy for AI trading agents, settled by a Reactive contract",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Datwebguy/greenlight-reactive.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Datwebguy/greenlight-reactive/issues"
+  },
+  "homepage": "https://github.com/Datwebguy/greenlight-reactive#readme",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@types/node": "^26.6.6",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.7",
+    "hardhat": "^3.22.0",
+    "typescript": "^7.0.2",
+    "viem": "^2.58.4"
+  }
+}

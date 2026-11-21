@@ -1,0 +1,13 @@
+node_modules/
+artifacts/
+cache/
+coverage/
+types/
+out/
+.next/
+.vercel/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

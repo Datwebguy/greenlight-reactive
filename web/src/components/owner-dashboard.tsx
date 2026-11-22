@@ -294,10 +294,10 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
             <li key={d.createdAt} className="py-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[14px] font-semibold">
-                  {d.action === "hold" ? "Waited" : `${d.action === "buy" ? "Buy" : "Sell"} ${d.orderText ? dollars(Number(d.orderText.split(":")[2])) : ""}`}
+                  {d.action === "hold" ? "Waited" : `${d.action === "buy" ? "Buy" : "Sell"} ${d.orderText ? dollars(Number(d.orderText.split(":").at(-4))) : ""}`}
                 </span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
                     d.source === "near-tee" ? "bg-go-soft text-go-deep" : "bg-wait-soft text-wait"
                   }`}
                 >

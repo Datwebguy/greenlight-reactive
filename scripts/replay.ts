@@ -75,7 +75,10 @@ for (const net of chains) {
   const entry = d.chains?.[net.viem.id];
   if (!entry?.factory) continue;
   const from = BigInt(entry.venue.block);
-  for (const l of await logs(net.viem.id, entry.factory.address, [ev.created], from)) {
+  // The current factory and every earlier one: their accounts keep running.
+  const factories = [entry.factory, ...(entry.previousFactories ?? [])].map((f: { address: Address }) => f.address);
+  const created = (await Promise.all(factories.map((f: Address) => logs(net.viem.id, f, [ev.created], from)))).flat();
+  for (const l of created) {
     const owner = String(l.args.owner).toLowerCase();
     accountOwner.set(`${net.viem.id}:${String(l.args.account).toLowerCase()}`, owner);
     rows.push({ time: l.time, chainId: net.viem.id, tx: l.transactionHash!, owner, kind: "open", text: `Account opened (${l.args.account})` });

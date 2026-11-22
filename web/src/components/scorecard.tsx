@@ -58,7 +58,9 @@ export function Scorecard({ items }: { items: TimelineItem[] }) {
   const wins = rows.filter((r) => verdict(r.scored, r.trade?.side) === "a win").length;
   const losses = rows.filter((r) => verdict(r.scored, r.trade?.side) === "a loss").length;
   const pnl = rows.reduce((s, r) => s + r.scored.pnlCents, 0);
-  const signed = rows.filter((r) => r.trade?.verified).length;
+  // Every trade the agent made, judged yet or not.
+  const trades = items.filter((t): t is Extract<TimelineItem, { kind: "trade" }> => t.kind === "trade");
+  const signed = trades.filter((t) => t.verified).length;
   const shown = all ? rows : rows.slice(0, 8);
 
   return (
@@ -77,7 +79,7 @@ export function Scorecard({ items }: { items: TimelineItem[] }) {
           { k: "Trades judged", v: String(rows.length) },
           { k: "Won", v: rows.length ? `${wins} of ${rows.length}` : "0" },
           { k: "Result", v: `${pnl < 0 ? "−" : "+"}${dollars(Math.abs(pnl))}`, tone: pnl < 0 ? "text-stop" : "text-go-deep" },
-          { k: "Signed by the AI enclave", v: rows.length ? `${signed} of ${rows.length}` : "0" },
+          { k: "Trades signed by the AI enclave", v: trades.length ? `${signed} of ${trades.length}` : "0" },
         ].map((s) => (
           <div key={s.k}>
             <dt className="text-[13px] text-mute">{s.k}</dt>
@@ -90,7 +92,7 @@ export function Scorecard({ items }: { items: TimelineItem[] }) {
       )}
 
       {rows.length === 0 ? (
-        <p className="mt-10 py-8 text-center text-[15px] text-mute">No trades have been judged yet. Each one appears here about ten minutes after it is made.</p>
+        <p className="mt-10 py-8 text-center text-[15px] text-mute">Each trade appears here once its judging window has passed and the next Chainlink price arrives.</p>
       ) : (
         <ul className="mt-8 divide-y divide-line border-y border-line">
           {shown.map(({ scored: s, trade: t }) => {

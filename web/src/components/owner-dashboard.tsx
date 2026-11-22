@@ -83,22 +83,26 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
   const pnl = book?.pnlCents ?? 0;
 
   return (
-    <div className="space-y-6 pt-8 pb-4">
+    <div className="space-y-14 pt-16 pb-4">
       {/* title */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${frozen ? "bg-stop" : "live-dot bg-go"}`} />
-            <span className={`text-[13px] font-semibold ${frozen ? "text-stop" : "text-go-deep"}`}>
-              {frozen ? "Frozen" : "Trading"}
-            </span>
-          </div>
-          <h1 className="mt-1 text-[28px] font-semibold tracking-tight">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-semibold ${
+              frozen ? "bg-stop-soft text-stop" : "bg-go-soft text-go-deep"
+            }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${frozen ? "bg-stop" : "live-dot bg-go"}`} />
+            {frozen ? "Frozen" : "Trading live"}
+          </span>
+          <h1 className="mt-4 text-[40px] leading-tight font-semibold tracking-tight sm:text-[52px]">
             {isOwner ? `Your agent, ${agentName(owner)}` : agentName(owner)}
           </h1>
-          <p className="text-[14px] text-ink-2">
-            Trading ETH on{" "}
-            {[...new Set(data.accounts.map((a) => chainLabel(a.chainId)))].join(" and ")}
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-[15px] text-ink-2">
+            Trading ETH on
+            {[...new Set(data.accounts.map((a) => a.chainId))].map((c) => (
+              <ChainChip key={c} chainId={c} />
+            ))}
           </p>
         </div>
         {isOwner &&
@@ -123,7 +127,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
       </div>
 
       {frozen && (
-        <div className="rounded-2xl border border-stop/25 bg-stop-soft px-5 py-4 text-[14px] text-ink">
+        <div className="rounded-3xl bg-stop-soft px-6 py-4 text-[15px] text-ink">
           <b>{lastFreeze ? reasonText[lastFreeze.reason] : "The agent is frozen"}.</b> It cannot trade on any chain until the
           owner restarts it, and it will restart at its lowest limit.
         </div>
@@ -131,38 +135,42 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
       {actError && <div className="rounded-2xl bg-stop-soft px-5 py-3 text-[14px] text-stop">{actError}</div>}
 
       {/* limit + approvals */}
-      <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
-        <Card className="p-6">
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-            <Gauge limitCents={limitCents} floorCents={policy.floorCents} ceilingCents={policy.ceilingCents} frozen={frozen} size={210}>
+      <div className="grid gap-14">
+        <div className="flex flex-col items-center gap-10 py-4 sm:flex-row sm:items-center">
+          <div className="relative grid place-items-center">
+            <div aria-hidden className="absolute h-[240px] w-[240px] rounded-full opacity-70 blur-3xl" style={{ background: "var(--glow)" }} />
+            <div aria-hidden className="absolute h-[290px] w-[290px] rounded-full border border-line" style={{ animation: "orbit 28s linear infinite" }}>
+              <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-go shadow-[0_0_12px_var(--go)]" />
+            </div>
+            <Gauge limitCents={limitCents} floorCents={policy.floorCents} ceilingCents={policy.ceilingCents} frozen={frozen} size={240}>
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-mute">Earned limit</div>
-                <Ticker value={limitCents / 100} format={(n) => `$${n.toFixed(2)}`} className="num block text-[32px] font-semibold tracking-tight" />
-                <div className="text-[11px] text-mute">per day</div>
+                <div className="text-[12px] text-mute">Earned limit</div>
+                <Ticker value={limitCents / 100} format={(n) => `$${n.toFixed(2)}`} className="num block text-[40px] leading-tight font-semibold tracking-tight" />
+                <div className="text-[12px] text-mute">a day</div>
               </div>
             </Gauge>
-            <dl className="grid w-full flex-1 grid-cols-2 gap-3">
-              <Fact label={data.accounts.length > 1 ? "Left today, all chains" : "Left today"} value={dollars(data.accounts.reduce((s, a) => s + (a.frozen ? 0 : a.remainingCents), 0))} sub="Resets at midnight UTC" />
-              <Fact
-                label="Result so far"
-                value={<span className={pnl < 0 ? "text-stop" : "text-go-deep"}>{`${pnl < 0 ? "−" : "+"}${dollars(Math.abs(pnl))}`}</span>}
-                sub={data.price ? `ETH ${price(data.price.value)}` : undefined}
-              />
-              <Fact
-                label="Record"
-                value={`${book?.wins ?? 0} won · ${book?.losses ?? 0} lost`}
-                sub={
-                  book?.winStreak
-                    ? `${book.winStreak} of ${policy.raiseAfterWins} wins to a raise`
-                    : book?.lossStreak
-                      ? `${book.lossStreak} of ${policy.freezeAfterLosses} losses to a freeze`
-                      : `Judged ${duration(policy.scoreWindow)} after each trade`
-                }
-              />
-              <Fact label="Range" value={`${dollars(policy.floorCents)} to ${dollars(policy.ceilingCents)}`} sub={`Started at ${dollars(policy.startLimitCents)}`} />
-            </dl>
           </div>
-        </Card>
+          <dl className="grid w-full flex-1 grid-cols-2 gap-x-8 gap-y-7">
+            <Fact label={data.accounts.length > 1 ? "Left today, all chains" : "Left today"} value={dollars(data.accounts.reduce((s, a) => s + (a.frozen ? 0 : a.remainingCents), 0))} sub="Resets at midnight UTC" />
+            <Fact
+              label="Result so far"
+              value={<span className={pnl < 0 ? "text-stop" : "text-go-deep"}>{`${pnl < 0 ? "\u2212" : "+"}${dollars(Math.abs(pnl))}`}</span>}
+              sub={data.price ? `ETH ${price(data.price.value)}` : undefined}
+            />
+            <Fact
+              label="Record"
+              value={`${book?.wins ?? 0} won · ${book?.losses ?? 0} lost`}
+              sub={
+                book?.winStreak
+                  ? `${book.winStreak} of ${policy.raiseAfterWins} wins to a raise`
+                  : book?.lossStreak
+                    ? `${book.lossStreak} of ${policy.freezeAfterLosses} losses to a freeze`
+                    : `Judged ${duration(policy.scoreWindow)} after each trade`
+              }
+            />
+            <Fact label="Can move between" value={`${dollars(policy.floorCents)} and ${dollars(policy.ceilingCents)}`} sub={`Started at ${dollars(policy.startLimitCents)}`} />
+          </dl>
+        </div>
         <Approvals accounts={data.accounts} isOwner={isOwner} act={act} busy={busy} />
       </div>
 
@@ -171,7 +179,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
         <Decisions decisions={data.decisions} />
         <Card>
           <CardHead title="Limit over time" hint="Every change was decided by the scorer on Reactive Network." />
-          <div className="p-4">
+          <div className="py-4">
             <LimitChart points={limitPoints} floor={policy.floorCents} ceiling={policy.ceilingCents} />
           </div>
         </Card>
@@ -191,9 +199,9 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
 
 function Fact({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-line bg-card px-3.5 py-3">
-      <dt className="text-[12px] text-mute">{label}</dt>
-      <dd className="num mt-1 text-[17px] font-semibold leading-tight">{value}</dd>
+    <div className="min-w-0">
+      <dt className="text-[13px] text-mute">{label}</dt>
+      <dd className="num mt-1.5 text-[24px] font-semibold leading-tight tracking-tight">{value}</dd>
       {sub && <dd className="mt-1 text-[12px] leading-snug text-mute">{sub}</dd>}
     </div>
   );
@@ -202,20 +210,20 @@ function Fact({ label, value, sub }: { label: string; value: React.ReactNode; su
 function Approvals({ accounts, isOwner, act, busy }: { accounts: AccountView[]; isOwner: boolean; act: Act; busy: string | null }) {
   const open = accounts.flatMap((a) => a.openRequests.map((r) => ({ ...r, account: a })));
   return (
-    <Card className={open.length ? "border-wait/40" : ""}>
+    <Card>
       <CardHead
         title={open.length ? `Waiting for the owner (${open.length})` : "Waiting for the owner"}
         hint="Trades the agent is not allowed to make on its own."
       />
       {open.length === 0 ? (
-        <div className="px-6 py-10 text-center">
+        <div className="py-10 text-center">
           <div className="text-[15px] font-medium">Nothing needs a decision</div>
           <p className="mt-1 text-[13px] text-mute">Trades over the limit, or not signed by the enclave, will appear here.</p>
         </div>
       ) : (
         <ul className="divide-y divide-line">
           {open.map((r) => (
-            <li key={`${r.account.address}-${r.id}`} className="px-6 py-4">
+            <li key={`${r.account.address}-${r.id}`} className="py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[15px] font-semibold">
@@ -264,11 +272,11 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
     <Card>
       <CardHead title="What the agent is thinking" hint="Every decision, including when it chose to wait." />
       {decisions.length === 0 ? (
-        <p className="px-6 py-10 text-center text-[14px] text-mute">The agent decides every 10 minutes. Its reasoning appears here.</p>
+        <p className="py-10 text-center text-[14px] text-mute">The agent decides every 10 minutes. Its reasoning appears here.</p>
       ) : (
         <ul className="divide-y divide-line">
           {shown.map((d) => (
-            <li key={d.createdAt} className="px-6 py-4">
+            <li key={d.createdAt} className="py-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[14px] font-semibold">
                   {d.action === "hold" ? "Waited" : `${d.action === "buy" ? "Buy" : "Sell"} ${d.orderText ? dollars(Number(d.orderText.split(":")[2])) : ""}`}
@@ -300,7 +308,7 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
         </ul>
       )}
       {decisions.length > 4 && (
-        <button onClick={() => setMore(!more)} className="w-full border-t border-line py-3 text-[13px] font-semibold text-go-deep hover:bg-paper">
+        <button onClick={() => setMore(!more)} className="mt-2 rounded-full border border-line-2 px-4 py-2 text-[13px] font-semibold text-ink hover:border-ink/40">
           {more ? "Show less" : "Show more"}
         </button>
       )}
@@ -364,7 +372,7 @@ function Activity({ items }: { items: TimelineItem[] }) {
       <CardHead title="Activity" hint="Newest first. Every line links to its transaction." />
       <ol className="divide-y divide-line">
         {shown.map(({ t, d }, i) => (
-          <li key={`${t.tx}-${t.kind}-${i}`} className="flex items-start gap-3 px-6 py-3.5">
+          <li key={`${t.tx}-${t.kind}-${i}`} className="flex items-start gap-3 py-3.5">
             <span className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${dot[d.tone]}`} />
             <div className="min-w-0 flex-1">
               <div className="text-[14px] text-ink">{d.text}</div>
@@ -380,7 +388,7 @@ function Activity({ items }: { items: TimelineItem[] }) {
         ))}
       </ol>
       {rows.length > 12 && (
-        <button onClick={() => setAll(!all)} className="w-full border-t border-line py-3 text-[13px] font-semibold text-go-deep hover:bg-paper">
+        <button onClick={() => setAll(!all)} className="mt-2 rounded-full border border-line-2 px-4 py-2 text-[13px] font-semibold text-ink hover:border-ink/40">
           {all ? "Show less" : `Show all ${rows.length}`}
         </button>
       )}
@@ -401,13 +409,13 @@ function Speed({ items }: { items: TimelineItem[] }) {
   return (
     <Card>
       <CardHead title="How fast changes arrive" hint="From the scorer's decision to each chain." />
-      <div className="px-6 pt-5">
+      <div className="pt-5">
         <div className="num text-[32px] font-semibold leading-none">{m ? `${m.median}s` : "—"}</div>
         <div className="mt-1 text-[13px] text-mute">{m ? `typical, across ${m.count} update${m.count === 1 ? "" : "s"}` : "No changes yet"}</div>
       </div>
       <ul className="mt-4 divide-y divide-line border-t border-line">
         {recent.map(({ l, arrivals }) => (
-          <li key={l.seq} className="flex items-center justify-between gap-3 px-6 py-3 text-[13px]">
+          <li key={l.seq} className="flex items-center justify-between gap-3 py-3 text-[13px]">
             <span className="text-ink">{reasonText[l.reason]}</span>
             <span className="flex flex-wrap justify-end gap-1.5">
               {arrivals.length === 0 ? (
@@ -436,7 +444,7 @@ function Accounts({ accounts, bookSeq, isOwner, act, busy }: { accounts: Account
           const behind = a.appliedSeq < bookSeq;
           const venue = chainById(a.chainId)?.venue;
           return (
-            <li key={a.address} className="px-6 py-4">
+            <li key={a.address} className="py-4">
               <div className="flex items-center justify-between">
                 <span className="text-[15px] font-semibold">{a.chainName}</span>
                 <span

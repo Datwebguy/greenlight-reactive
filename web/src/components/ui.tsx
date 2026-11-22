@@ -1,15 +1,15 @@
 import Link from "next/link";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-[28px] bg-card/60 backdrop-blur-sm ${className}`}>{children}</section>;
+  return <section className={`border-t border-line ${className}`}>{children}</section>;
 }
 
 export function CardHead({ title, hint, right }: { title: string; hint?: string; right?: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-3">
+    <div className="flex items-start justify-between gap-4 pt-6 pb-2">
       <div>
-        <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
-        {hint && <p className="mt-0.5 text-[13px] text-mute">{hint}</p>}
+        <h2 className="text-[20px] font-semibold tracking-tight text-ink">{title}</h2>
+        {hint && <p className="mt-1 text-[14px] text-mute">{hint}</p>}
       </div>
       {right}
     </div>

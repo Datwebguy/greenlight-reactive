@@ -6,6 +6,7 @@ import { decodeEventLog, isAddress, parseEther, type Address } from "viem";
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { greenlightFactoryAbi, greenlightVenueAbi } from "@/lib/abi";
 import { hostedAgent, tradingChains } from "@/lib/config";
+import { chainBrand } from "./brand";
 import { Button, Card, CardHead } from "./ui";
 
 interface Field {
@@ -127,12 +128,12 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
         title="Set the agent's rules"
         hint="You sign these once. You can change them, freeze the agent or withdraw at any time."
       />
-      <div className="grid gap-x-8 gap-y-5 p-5 md:grid-cols-2">
+      <div className="grid gap-x-10 gap-y-7 py-6 md:grid-cols-2">
         {fields.map((f, i) => (
           <label key={f.key} className="block">
             <span className="text-[14px] font-semibold text-ink">{f.label}</span>
             <span className="mt-0.5 block text-[13px] text-mute">{f.hint}</span>
-            <span className="mt-2 flex items-center rounded-xl border border-line-2 bg-card focus-within:border-go">
+            <span className="mt-2 flex items-center rounded-2xl border border-line-2 bg-card focus-within:border-go">
               {f.unit === "$" && <span className="pl-3 text-mute">$</span>}
               <input
                 type="number"
@@ -149,7 +150,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
         ))}
       </div>
 
-      <div className="grid gap-5 border-t border-line p-5 md:grid-cols-2">
+      <div className="grid gap-7 border-t border-line py-6 md:grid-cols-2">
         <div>
           <div className="text-[14px] font-semibold">Chains</div>
           <div className="mt-0.5 text-[13px] text-mute">A freeze on one reaches all of them.</div>
@@ -160,10 +161,11 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
                 type="button"
                 disabled={!c.factory}
                 onClick={() => setChains({ ...chains, [c.chain.id]: !chains[c.chain.id] })}
-                className={`rounded-xl border px-3 py-2 text-[14px] font-medium ${
-                  chains[c.chain.id] && c.factory ? "border-go bg-go-soft text-go-deep" : "border-line-2 bg-card text-ink-2"
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-medium transition ${
+                  chains[c.chain.id] && c.factory ? "border-go bg-go-soft text-go-deep" : "border-line-2 text-ink-2"
                 }`}
               >
+                {chainBrand[c.chain.id] && (() => { const L = chainBrand[c.chain.id].Logo; return <L size={16} />; })()}
                 {c.chain.name}
               </button>
             ))}
@@ -172,7 +174,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
         <label className="block">
           <span className="text-[14px] font-semibold">Deposit for updates, per chain</span>
           <span className="mt-0.5 block text-[13px] text-mute">Test ETH that pays for the scorer&apos;s updates to your account.</span>
-          <span className="mt-2 flex items-center rounded-xl border border-line-2 bg-card focus-within:border-go">
+          <span className="mt-2 flex items-center rounded-2xl border border-line-2 bg-card focus-within:border-go">
             <input
               type="number"
               min="0"
@@ -194,16 +196,16 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
           <input
             value={agent}
             onChange={(e) => setAgent(e.target.value.trim())}
-            className="num mt-2 w-full rounded-xl border border-line-2 bg-card px-3 py-2.5 text-[14px] outline-none focus:border-go"
+            className="num mt-2 w-full rounded-2xl border border-line-2 bg-card px-3 py-2.5 text-[14px] outline-none focus:border-go"
           />
         </label>
         <div>
           <div className="text-[14px] font-semibold">AI that signs decisions</div>
           <div className="mt-0.5 text-[13px] text-mute">Read now from NEAR AI Cloud&apos;s attestation report.</div>
-          <div className="mt-2 rounded-xl border border-line bg-paper px-3 py-2.5 text-[14px]">
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-[14px]">
             {teeSigner ? (
               <>
-                <span className="font-medium">{signer.data?.model}</span>
+                <span className="font-medium">{signer.data?.model.split("/").pop()?.replace("-", " ")}</span>
                 <span className="text-mute"> · verified enclave</span>
               </>
             ) : (
@@ -213,7 +215,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-line p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-line py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-[13px]">
           {error ? (
             <span className="text-stop">{error}</span>

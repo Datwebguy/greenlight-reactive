@@ -30,9 +30,17 @@ export function AgentConsole({ d }: { d: ConsoleData | null }) {
     return <p className="text-center text-[15px] text-ink-2">The live agent is starting up. Its first decision comes within ten minutes.</p>;
   }
   return (
-    <div className="relative mx-auto max-w-[520px]">
+    <div className="relative mx-auto max-w-[520px] overflow-visible">
       <div className="relative mx-auto grid place-items-center py-4">
         <div aria-hidden className="absolute h-[300px] w-[300px] rounded-full opacity-70 blur-3xl" style={{ background: "var(--glow)" }} />
+        {/* orbiting lights */}
+        <div aria-hidden className="absolute h-[360px] w-[360px] rounded-full border border-line" style={{ animation: "orbit 28s linear infinite" }}>
+          <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-go shadow-[0_0_12px_var(--go)]" />
+          <span className="absolute bottom-[14%] left-[6%] h-1.5 w-1.5 rounded-full bg-go/60" />
+        </div>
+        <div aria-hidden className="absolute h-[420px] w-[420px] rounded-full border border-dashed border-line" style={{ animation: "orbit 46s linear infinite reverse" }}>
+          <span className="absolute top-1/2 -right-1 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-go shadow-[0_0_16px_var(--go)]" />
+        </div>
         <Gauge limitCents={d.limitCents} floorCents={d.floorCents} ceilingCents={d.ceilingCents} frozen={d.frozen} size={300}>
           <div>
             <div className="text-[12px] font-medium text-mute">{d.name} has earned</div>

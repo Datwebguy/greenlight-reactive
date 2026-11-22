@@ -364,6 +364,21 @@ contract GreenlightTest is Test {
         venue.swap(1, 1e6, 0, 100);
     }
 
+    function test_theVenueRefusesAnUnknownSide() public {
+        vm.expectRevert(GreenlightVenue.BadSide.selector);
+        venue.swap(2, 1e6, 1_678_00000000, 100);
+    }
+
+    function test_anUpdateCannotPushTheLimitOutsideTheOwnersRange() public {
+        GreenlightAccount a = open(policy());
+        bytes memory low = abi.encodeCall(a.sync, (address(0), 50, 1, false, Reason.CUT));
+        assertTrue(proxy.deliver(address(scorer), address(a), low));
+        assertEq(a.limitCents(), 20_00, "never below the lowest");
+        bytes memory high = abi.encodeCall(a.sync, (address(0), 51, 10_000_00, false, Reason.RAISED));
+        assertTrue(proxy.deliver(address(scorer), address(a), high));
+        assertEq(a.limitCents(), 500_00, "never above the highest");
+    }
+
     function test_overLimitWaitsForOwner() public {
         GreenlightAccount a = open(policy());
         assertFalse(agentTrade(a, 0, 150_00));

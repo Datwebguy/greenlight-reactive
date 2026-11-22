@@ -37,6 +37,7 @@ contract GreenlightVenue {
     error BadPrice();
     error PriceMoved(uint256 price, uint256 refPrice);
     error ZeroAmount();
+    error BadSide();
     error FaucetTooSoon(uint256 nextAt);
 
     event Swapped(
@@ -82,6 +83,7 @@ contract GreenlightVenue {
     {
         if (usdAmount == 0) revert ZeroAmount();
         if (refPrice == 0) revert BadPrice(); // a zero reference would switch off the price-move check
+        if (side > SELL) revert BadSide();
         uint256 updatedAt;
         (fillPrice, updatedAt) = price();
         // ether (18 decimals) = dollars (6 decimals) * 10^12 * 10^feedDecimals / price

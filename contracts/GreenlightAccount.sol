@@ -249,8 +249,10 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
             return;
         }
         appliedSeq = seq;
+        // The scorer already keeps the limit inside the owner's range; the account checks again.
         uint64 cap = policy.ceilingCents;
-        limitCents = limitCents_ > cap ? cap : limitCents_;
+        uint64 floor_ = policy.floorCents;
+        limitCents = limitCents_ > cap ? cap : limitCents_ < floor_ ? floor_ : limitCents_;
         scorerFrozen = frozen_;
         emit Synced(seq, limitCents, frozen_, reason);
     }

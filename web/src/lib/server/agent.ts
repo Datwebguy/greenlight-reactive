@@ -121,8 +121,10 @@ export async function runAgent(budgetMs = 240_000): Promise<TickResult[]> {
   const results: TickResult[] = [];
   const history = await priceHistory();
 
+  // Work out which accounts to decide for, then decide: chains in parallel, one account at a time per chain so the
+  // agent's own transactions never race each other.
+  const due: AccountView[] = [];
   for (const a of await allAccounts()) {
-    if (Date.now() - started > budgetMs) break;
     let view: AccountView;
     try {
       view = await readAccount(a.chainId, a.address);
@@ -149,12 +151,23 @@ export async function runAgent(budgetMs = 240_000): Promise<TickResult[]> {
       skip("agent needs gas");
       continue;
     }
-    try {
-      results.push(await decideAndTrade(view, history));
-    } catch (e) {
-      results.push({ chainId: a.chainId, account: a.address, outcome: `error: ${(e as Error).message.slice(0, 160)}` });
-    }
+    due.push(view);
   }
+
+  const byChain = new Map<number, AccountView[]>();
+  for (const v of due) byChain.set(v.chainId, [...(byChain.get(v.chainId) ?? []), v]);
+  await Promise.all(
+    [...byChain.values()].map(async (list) => {
+      for (const view of list) {
+        if (Date.now() - started > budgetMs) break;
+        try {
+          results.push(await decideAndTrade(view, history));
+        } catch (e) {
+          results.push({ chainId: view.chainId, account: view.address, outcome: `error: ${(e as Error).message.slice(0, 160)}` });
+        }
+      }
+    }),
+  );
   return results;
 }
 

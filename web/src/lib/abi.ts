@@ -2733,6 +2733,11 @@ export const greenlightVenueAbi = [
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "BadSide",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",

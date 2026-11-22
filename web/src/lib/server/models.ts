@@ -44,7 +44,9 @@ export async function askNear(system: string, user: string, timeoutMs = 150_000)
     JSON.stringify({
       model: NEAR_MODEL,
       temperature: 0,
-      max_tokens: 4000,
+      max_tokens: 1500,
+      // A short, direct answer: the decision needs no long hidden reasoning, and it keeps each call to seconds.
+      chat_template_kwargs: { enable_thinking: process.env.NEAR_AI_THINKING === "on" },
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },

@@ -13,8 +13,10 @@ export interface TradingChain {
   venue?: Address;
   factory?: Address;
   fromBlock: bigint;
-  /** Largest block range the public RPC accepts in one log query. */
+  /** Largest block range the history RPC accepts in one log query. */
   logSpan: bigint;
+  /** Where history is read from, when the fast RPC does not keep it. */
+  logRpcUrl?: string;
 }
 
 type Deployed = {
@@ -47,6 +49,7 @@ function trading(
   explorer: string,
   priceFeed: Address,
   logSpan: bigint,
+  logRpcUrl?: string,
 ): TradingChain {
   const entry = d.chains?.[String(chain.id)];
   return {
@@ -59,6 +62,7 @@ function trading(
     factory: entry?.factory?.address,
     fromBlock: BigInt(entry?.venue?.block ?? 0),
     logSpan,
+    logRpcUrl,
   };
 }
 
@@ -77,7 +81,9 @@ export const tradingChains: TradingChain[] = [
     process.env.NEXT_PUBLIC_UNICHAIN_SEPOLIA_RPC_URL ?? "https://unichain-sepolia-rpc.publicnode.com",
     "https://sepolia.uniscan.xyz",
     "0xd9c93081210dFc33326B2af4C2c11848095E6a9a",
-    9_999n,
+    // The official node keeps full history, 1,000 blocks per query.
+    999n,
+    process.env.UNICHAIN_SEPOLIA_HISTORY_RPC_URL ?? "https://sepolia.unichain.org",
   ),
 ];
 

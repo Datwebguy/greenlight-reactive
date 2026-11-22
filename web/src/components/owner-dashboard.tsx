@@ -404,7 +404,7 @@ function Speed({ items }: { items: TimelineItem[] }) {
     .slice(0, 4)
     .map((l) => ({
       l,
-      arrivals: items.filter((s): s is Extract<TimelineItem, { kind: "synced" }> => s.kind === "synced" && s.seq === l.seq),
+      arrivals: items.filter((s): s is Extract<TimelineItem, { kind: "synced" }> => s.kind === "synced" && s.seq === l.seq && s.reason === l.reason),
     }));
   return (
     <Card>

@@ -379,7 +379,7 @@ export async function readOwner(owner: Address): Promise<OwnerView> {
   const ownerActs = timeline.filter((t) => t.kind === "owner" || t.kind === "policy");
   for (const lim of timeline.filter((t): t is Extract<TimelineItem, { kind: "limit" }> => t.kind === "limit")) {
     const arrivals = timeline
-      .filter((t): t is Extract<TimelineItem, { kind: "synced" }> => t.kind === "synced" && t.seq === lim.seq)
+      .filter((t): t is Extract<TimelineItem, { kind: "synced" }> => t.kind === "synced" && t.seq === lim.seq && t.reason === lim.reason)
       .map((t) => ({ chainId: t.chainId, account: t.account, time: t.time, tx: t.tx }));
     let origin: Delivery["origin"];
     if (OWNER_REASONS.has(lim.reason)) {

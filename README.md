@@ -83,6 +83,53 @@ npm test
 
 **The AI cannot act outside the rules.** The agent's key can only call `trade()`. It cannot withdraw, change rules, unfreeze, or approve its own requests. If the enclave is unavailable, a backup model can still suggest trades, but they carry no enclave signature and always wait for the owner.
 
+## The full loop, on-chain
+
+Every row is a real transaction. Times are block times; the delay is from the scorer's decision on Reactive Network to the update landing on each chain.
+
+**A trade judged, and the limit cut on its own**
+
+| Step | Network | What happened | Transaction |
+|---|---|---|---|
+| Origin event | Base Sepolia | The AI bought $12.50 of ETH at $1,684.61; the account verified the NEAR enclave's signature before filling it | [`0x8922e2…5ffb`](https://sepolia.basescan.org/tx/0x8922e273bd288850dad64d1424fe0e2ef0bf40bb4ceb00e2d06bf956a8665ffb) |
+| Reaction | Reactive Lasna | On the first Chainlink update after the 10-minute window, the scorer judged it a loss (−0.18%) and cut the limit from $50.00 to $37.50 | [`0xe8a402…662f`](https://lasna.reactscan.net/tx/0xe8a402ad2a4248f254b9e0b3d1154329732340e387b6f137f8cc603f387e662f) |
+| Callback | Base Sepolia | The account applied the new limit, 1 second after the decision | [`0x0e2556…237f`](https://sepolia.basescan.org/tx/0x0e2556e155fef9b4debdedbe81f095c93472aae7eae5eda4f1e8fc52a365237f) |
+
+**One freeze, every chain**
+
+| Step | Network | What happened | Transaction |
+|---|---|---|---|
+| Origin event | Base Sepolia | The owner pressed freeze on one chain | [`0x1ecc8d…00c6`](https://sepolia.basescan.org/tx/0x1ecc8d5480c5be6e0d319e6ac238ae1dfa34971fa02c23f4a1013931650000c6) |
+| Reaction | Reactive Lasna | The scorer froze the agent and sent the update to every account | [`0xad5ded…135e`](https://lasna.reactscan.net/tx/0xad5ded3aa2d69f0a96b6e318747755966474a7af2720678abb9c5305a239135e) |
+| Callback | Base Sepolia | Frozen, 3 seconds after the decision | [`0xc52dcc…1e15`](https://sepolia.basescan.org/tx/0xc52dcc43c98db18027a0be0f067971176270eb8345a29c6f9d83f14a4ff61e15) |
+| Callback | Unichain Sepolia | Frozen, 4 seconds after the decision | [`0x2bdd1c…5816`](https://sepolia.uniscan.xyz/tx/0x2bdd1cdb1273121e0311601b6196822ebcef0f7bc1de8f5949ccecd491935816) |
+
+**A new account picked up by the scorer, on two chains**
+
+| Step | Network | What happened | Transaction |
+|---|---|---|---|
+| Origin event | Base Sepolia | Account opened through the factory | [`0x57e26b…f6f7`](https://sepolia.basescan.org/tx/0x57e26b266146b645a15d77f35ddf2f6111f8ba6f35efe553328cd90a0f40f6f7) |
+| Reaction | Reactive Lasna | The scorer subscribed to the new account and set its first limit | [`0x86483c…ef18`](https://lasna.reactscan.net/tx/0x86483ce837cfaa0f0a1297043e4a12b34d169577588200468d8df3a1368fef18) |
+| Callback | Base Sepolia | First limit applied | [`0x04fb4c…198a`](https://sepolia.basescan.org/tx/0x04fb4c93720c51fd8e24096c8e2b7ebb99ff7d06485c0977de892100851c198a) |
+| Callback | Unichain Sepolia | The owner's second account received the same limit | [`0xa9162a…2873`](https://sepolia.uniscan.xyz/tx/0xa9162ae095e25330d54ca13a2b64730b879511852b97f338a20ec9a2c9ac2873) |
+
+Across every update so far, a decision on Reactive Network reached each chain in **2 seconds** typically and **4 seconds** at most. `npm run replay` recomputes these numbers from the chains; `npm run replay -- --deployment testnet-v1` covers the first deployment, where the trade and freeze above happened.
+
+## Reactive Network tools used
+
+- **reactive-lib-omni**, pinned as a submodule. The scorer extends `AbstractReactive`, subscribes and unsubscribes through the system contract from inside `react()`, and requests callbacks with `requestCallbackV_1_0`. The accounts extend `AbstractCallback` and accept updates only from the callback proxy on behalf of the scorer.
+- **Reactive MCP** (`mcp.rnk.dev`), throughout the build:
+  - `plan_rc` and `get_rc_template` to plan the subscription and callback design and start from the official Omni template;
+  - `check_rc_source` on every version of the scorer and accounts;
+  - `get_network_info` for the supported chains and their callback proxies;
+  - `validate_subscription` and `list_subscriptions` to confirm every subscription was live after deployment;
+  - `get_rc_health` to check funding and reserves;
+  - `trace_origin_event` to follow the first account from its origin transaction to the callback;
+  - `estimate_cost`, which led to the scorer following the price feed only while trades are waiting;
+  - `search_docs` for the faucet, delivery and debugging guidance.
+- **Lasna testnet** for the scorer, the **Base Sepolia and Ethereum Sepolia faucets** for REACT, the **system contract's `depositTo`** for reserves, the **callback proxies** on Base Sepolia and Unichain Sepolia, and **Reactscan** for every reactive transaction linked above.
+- **Timestamps, not block counts**, for every window, deadline and daily reset, as Base Sepolia now makes a block every 200 ms.
+
 ## Deployed contracts
 
 | Contract | Network | Address |

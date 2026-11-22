@@ -39,17 +39,19 @@ const ev = {
   limit: parseAbiItem("event LimitUpdated(address indexed owner, uint64 indexed seq, uint64 limitCents, bool frozen, uint8 reason)"),
 };
 
-type Row = { time: number; chainId: number; tx: string; text: string; owner: string; seq?: number; kind: string };
+type Row = { time: number; chainId: number; tx: string; text: string; owner: string; seq?: number; reason?: number; kind: string };
 
 const clients = new Map<number, ReturnType<typeof createPublicClient>>();
 function client(chainId: number) {
   if (!clients.has(chainId)) {
     const net = chainId === lasna.viem.id ? lasna : chains.find((c) => c.viem.id === chainId)!;
-    clients.set(chainId, createPublicClient({ chain: net.viem, transport: http(net.rpcUrl, { retryCount: 3 }) }));
+    // Unichain's official node keeps full history (1,000 blocks per query); fast public nodes drop it.
+    const url = chainId === 1301 ? (process.env.UNICHAIN_SEPOLIA_HISTORY_RPC_URL ?? "https://sepolia.unichain.org") : net.rpcUrl;
+    clients.set(chainId, createPublicClient({ chain: net.viem, transport: http(url, { retryCount: 3 }) }));
   }
   return clients.get(chainId)!;
 }
-const span = (chainId: number) => (chainId === 84532 ? 49_999n : 9_999n);
+const span = (chainId: number) => (chainId === 84532 ? 49_999n : chainId === 1301 ? 999n : 9_999n);
 
 async function logs(chainId: number, address: Address, events: AbiEvent[], fromBlock: bigint) {
   const c = client(chainId);
@@ -87,7 +89,7 @@ for (const net of chains) {
             : a.eventName === "Synced"
               ? `Update #${x.seq} applied: ${x.frozen ? "frozen" : `limit ${usd(x.limitCents)}`}`
               : `Owner ${x.frozen ? "froze" : "unfroze"} the agent`;
-      rows.push({ time: a.time, chainId: net.viem.id, tx: a.transactionHash!, owner, kind: a.eventName, seq: a.eventName === "Synced" ? Number(x.seq) : undefined, text });
+      rows.push({ time: a.time, chainId: net.viem.id, tx: a.transactionHash!, owner, kind: a.eventName, seq: a.eventName === "Synced" ? Number(x.seq) : undefined, reason: a.eventName === "Synced" ? Number(x.reason) : undefined, text });
     }
   }
 }
@@ -97,9 +99,9 @@ for (const l of await logs(lasna.viem.id, d.scorer.address, [ev.scored, ev.limit
   const owner = String(x.owner).toLowerCase();
   const text =
     l.eventName === "TradeScored"
-      ? `Scorer judged trade #${x.tradeId}: ${Number(x.returnBps) >= 0 ? "+" : ""}${(Number(x.returnBps) / 100).toFixed(2)}% (${Number(x.pnlCents) >= 0 ? "win" : "loss"}), $${(Number(x.entryPrice) / 1e8).toFixed(2)} -> $${(Number(x.exitPrice) / 1e8).toFixed(2)}`
+      ? `Scorer judged trade #${x.tradeId}: ${Number(x.returnBps) >= 0 ? "+" : ""}${(Number(x.returnBps) / 100).toFixed(2)}% (${Number(x.pnlCents) > 0 || Number(x.returnBps) > 0 ? "win" : Number(x.pnlCents) < 0 || Number(x.returnBps) < 0 ? "loss" : "even"}), $${(Number(x.entryPrice) / 1e8).toFixed(2)} -> $${(Number(x.exitPrice) / 1e8).toFixed(2)}`
       : `Scorer decision #${x.seq}: ${reasons[Number(x.reason)]}, ${x.frozen ? "FROZEN" : `limit ${usd(x.limitCents)}`}`;
-  rows.push({ time: l.time, chainId: lasna.viem.id, tx: l.transactionHash!, owner, kind: l.eventName, seq: l.eventName === "LimitUpdated" ? Number(x.seq) : undefined, text });
+  rows.push({ time: l.time, chainId: lasna.viem.id, tx: l.transactionHash!, owner, kind: l.eventName, seq: l.eventName === "LimitUpdated" ? Number(x.seq) : undefined, reason: l.eventName === "LimitUpdated" ? Number(x.reason) : undefined, text });
 }
 
 rows.sort((a, b) => a.time - b.time || (a.chainId === lasna.viem.id ? 1 : 0) - (b.chainId === lasna.viem.id ? 1 : 0));
@@ -107,12 +109,14 @@ const owners = [...new Set(rows.map((r) => r.owner))].filter((o) => !onlyOwner |
 for (const owner of owners) {
   console.log(`\nOwner ${owner}`);
   const mine = rows.filter((r) => r.owner === owner);
-  const decided = new Map(mine.filter((r) => r.kind === "LimitUpdated").map((r) => [r.seq, r.time]));
+  const decided = new Map(mine.filter((r) => r.kind === "LimitUpdated").map((r) => [r.seq, r]));
   const delays: number[] = [];
   for (const r of mine) {
     let extra = "";
-    if (r.kind === "Synced" && decided.has(r.seq)) {
-      const s = r.time - decided.get(r.seq)!;
+    // A delivery of that decision, not a later copy of the same state sent to an account that joined afterwards.
+    const d = r.kind === "Synced" ? decided.get(r.seq) : undefined;
+    if (d && d.reason === r.reason) {
+      const s = r.time - d.time;
       delays.push(s);
       extra = `  (${s}s after the scorer's decision)`;
     }

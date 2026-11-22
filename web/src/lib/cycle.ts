@@ -32,7 +32,8 @@ export function verdict(s: { entryPrice: number; exitPrice: number; returnBps: n
 export function latestCycle(items: TimelineItem[]): Cycle | null {
   const limits = items.filter((t): t is Of<"limit"> => t.kind === "limit");
   const synced = items.filter((t): t is Of<"synced"> => t.kind === "synced");
-  const arrivals = (lim: Of<"limit">) => synced.filter((s) => s.seq === lim.seq);
+  // Deliveries of that decision; a later copy sent to an account that joined afterwards has another reason.
+  const arrivals = (lim: Of<"limit">) => synced.filter((s) => s.seq === lim.seq && s.reason === lim.reason);
   const finish = (lim: Of<"limit">, title: string, steps: CycleStep[], kind: Cycle["kind"]): Cycle => {
     const got = arrivals(lim);
     for (const a of got) {
@@ -135,7 +136,7 @@ export function medianDelivery(items: TimelineItem[]): { median: number; count: 
   const limits = items.filter((t): t is Of<"limit"> => t.kind === "limit");
   const synced = items.filter((t): t is Of<"synced"> => t.kind === "synced");
   const samples: number[] = [];
-  for (const l of limits) for (const s of synced) if (s.seq === l.seq) samples.push(Math.max(0, s.time - l.time));
+  for (const l of limits) for (const s of synced) if (s.seq === l.seq && s.reason === l.reason) samples.push(Math.max(0, s.time - l.time));
   if (!samples.length) return null;
   samples.sort((a, b) => a - b);
   const m = samples.length % 2 ? samples[(samples.length - 1) / 2] : (samples[samples.length / 2 - 1] + samples[samples.length / 2]) / 2;

@@ -102,7 +102,16 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
         </div>
         {isOwner &&
           (frozen ? (
-            <Button disabled={!!busy} onClick={() => act("unfreeze", main.chainId, { address: main.address, abi: greenlightAccountAbi, functionName: "unfreeze" })}>
+            <Button
+              disabled={!!busy}
+              onClick={async () => {
+                // The owner's own freeze is lifted chain by chain; a freeze from the scorer needs one unfreeze anywhere.
+                const targets = data.accounts.filter((a) => a.ownerFrozen);
+                for (const a of targets.length ? targets : [main]) {
+                  await act("unfreeze", a.chainId, { address: a.address, abi: greenlightAccountAbi, functionName: "unfreeze" });
+                }
+              }}
+            >
               {busy === "unfreeze" ? "Restarting…" : "Unfreeze the agent"}
             </Button>
           ) : (

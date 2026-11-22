@@ -4,21 +4,18 @@
 
 # Greenlight
 
-### Let an AI trade for you, on a limit it has to earn.
-
-Greenlight lets an AI agent trade with your money, within a limit you sign once, and automatically raises, lowers or freezes that limit based on how the agent's trades actually turn out.
+**An AI that trades for you, on a limit it has to earn.**
 
 [![Live app](https://img.shields.io/badge/Live_app-greenlight--earned.vercel.app-138a4a?style=for-the-badge)](https://greenlight-earned.vercel.app)
 
-![Reactive Network](https://img.shields.io/badge/Reactive_Network-Lasna-138a4a?style=flat-square)
-![NEAR AI](https://img.shields.io/badge/NEAR_AI_Cloud-TEE_signed-138a4a?style=flat-square)
-![Chainlink](https://img.shields.io/badge/Chainlink-ETH%2FUSD-138a4a?style=flat-square)
-![Chains](https://img.shields.io/badge/Base_%C2%B7_Unichain-Sepolia-138a4a?style=flat-square)
 [![Tests](https://github.com/Datwebguy/greenlight-reactive/actions/workflows/test.yml/badge.svg)](https://github.com/Datwebguy/greenlight-reactive/actions/workflows/test.yml)
+![Reactive Network](https://img.shields.io/badge/Reactive_Network-Lasna-138a4a?style=flat-square)
+![NEAR AI](https://img.shields.io/badge/NEAR_AI_Cloud-enclave_signed-138a4a?style=flat-square)
+![Chainlink](https://img.shields.io/badge/Chainlink-ETH%2FUSD-138a4a?style=flat-square)
 ![Verified](https://img.shields.io/badge/contracts-verified_on_Sourcify-138a4a?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-138a4a?style=flat-square)
 
-[Live app](https://greenlight-earned.vercel.app) · [Try it](#try-it-in-under-a-minute) · [Walkthrough](#walkthrough) · [How it works](#how-it-works) · [On-chain proof](#the-full-loop-on-chain) · [Contracts](#deployed-contracts) · [Run it](#run-it-yourself)
+[Live app](https://greenlight-earned.vercel.app) · [Try it](#try-it) · [How it works](#how-it-works) · [On-chain proof](#on-chain-proof) · [Contracts](#deployed-contracts) · [Run it yourself](#run-it-yourself)
 
 <img src="docs/images/home.png" alt="Greenlight home page, light" width="440" /> <img src="docs/images/home-dark.png" alt="Greenlight home page, dark" width="440" />
 
@@ -28,81 +25,63 @@ Greenlight lets an AI agent trade with your money, within a limit you sign once,
 
 ## Contents
 
-- [Try it in under a minute](#try-it-in-under-a-minute)
-- [Why Greenlight](#why-greenlight)
-- [Highlights](#highlights)
-- [Walkthrough](#walkthrough)
-- [How it works](#how-it-works)
-- [Reactive integration checklist](#reactive-integration-checklist)
-- [The full loop, on-chain](#the-full-loop-on-chain)
-- [Reactive Network tools used](#reactive-network-tools-used)
-- [Quality and testing](#quality-and-testing)
-- [Deployed contracts](#deployed-contracts)
-- [Run it yourself](#run-it-yourself)
-- [Built with](#built-with)
+1. [Overview](#overview)
+2. [Try it](#try-it)
+3. [A tour of the app](#a-tour-of-the-app)
+4. [How it works](#how-it-works)
+5. [Reactive Network integration](#reactive-network-integration)
+6. [On-chain proof](#on-chain-proof)
+7. [Quality and testing](#quality-and-testing)
+8. [Deployed contracts](#deployed-contracts)
+9. [Run it yourself](#run-it-yourself)
+10. [Built with](#built-with)
 
-## Try it in under a minute
+## Overview
 
-No faucet, no setup. All you need is a browser wallet such as MetaMask, Rabby or Coinbase Wallet.
+Greenlight lets an AI agent trade with your money within a limit you sign once, and it raises, lowers or freezes that limit automatically based on how the agent's trades actually turn out.
 
-| Step | Do this | What you see |
-|---|---|---|
-| 1 | Open [greenlight-earned.vercel.app/app](https://greenlight-earned.vercel.app/app) and press **Connect wallet** | Your wallet connects; nothing is sent |
-| 2 | Press **Get free test ETH** and confirm the free signature | 0.0025 test ETH arrives on Base Sepolia and Unichain Sepolia in a few seconds |
-| 3 | Keep the suggested rules or set your own, then press **Open account** | Your account opens on both chains with 10,000 test dollars, and the scorer on Reactive Network sets your first limit within seconds |
-| 4 | Press **Decide now** | The AI reads the market and trades or waits, with its reason in plain words |
-| 5 | Watch the **Scorecard** | Each trade is judged against Chainlink after its window, and your limit moves on both chains |
-| 6 | Open **Manage** | Pause, sell back to dollars, withdraw, change the rules, turn the AI off, or close the account |
+AI agents are becoming capable enough to trade and manage money, yet there is still no good way to trust one. Today you either hand an agent full control of your wallet and hope it never makes a costly mistake, or you approve every trade yourself, which removes most of the reason for having an agent at all. Everywhere else, trust is earned over time: a new hire starts with small responsibilities and a new driver begins with a learner's permit. Greenlight applies the same principle to AI.
 
-**No wallet? Verify it in 60 seconds:**
+You set the rules once: a starting daily limit, the highest the limit may ever reach, the lowest it can be cut to, how long to wait before judging a trade, and when the agent should freeze. The AI then trades inside that limit, while a contract on Reactive Network judges every trade against Chainlink prices. A run of good trades raises the limit, each losing trade cuts it, and a losing streak or a large total loss freezes the agent on every chain within seconds.
 
-1. On the [home page](https://greenlight-earned.vercel.app), press **Pause it everywhere**. A real agent is paused on Base and you watch the scorer on Reactive Network carry the pause to Base and Unichain in seconds, with every transaction linked. It restarts on its own.
-2. Open the [live agent](https://greenlight-earned.vercel.app/live). It trades every 5 minutes; its earned limit, record and latest reasoning are on the page.
-3. Follow one full loop: an AI trade on [Base](https://sepolia.basescan.org/tx/0x3152ce71b24bb49824de7419b04b5fb60c8ab67b720e4ebd345cf9c62a06c32b) → judged by the scorer on [Reactive Lasna](https://lasna.reactscan.net/tx/0x819ed0aec3afacca07f450e2a8d1604f0edbd727541ebaa06bf0f4808d5b0047) → the new limit applied on [Base](https://sepolia.basescan.org/tx/0xc0803adb2a665c68e9fbac8a7d6ecf82996f433eb3dd7b5ace96035e5b282245) and [Unichain](https://sepolia.uniscan.xyz/tx/0xe5fdd9569d32b1b4f8d79d674488b58bf875c82e02d9b6813bae1337961730aa) within 3 seconds.
-4. Browse [every transaction so far](deployments/EVIDENCE.md), or rebuild it yourself with `npm run replay`.
+### What makes it different
 
-## Why Greenlight
+**The agent earns its freedom.** Its limit is not a fixed number but a record that grows or shrinks with every judged trade. That record follows the owner across every account and chain, so a poor run cannot be wiped away by starting fresh.
 
-People trust a new hire with a little responsibility first, then give them more as they prove themselves. Greenlight brings the same idea to AI agents that trade.
+**Every decision is verified before money moves.** The AI runs inside a secure enclave on NEAR AI Cloud, which signs each answer. The account contract checks that signature on-chain, along with the order itself, which names the exact chain and account it was made for. Anything unsigned, or larger than today's limit, waits for the owner's approval.
 
-| You decide once | Greenlight handles the rest |
-|---|---|
-| A starting daily limit, the highest it may ever reach and the lowest it can be cut to | Every trade is judged against Chainlink's price once its window has passed |
-| How many wins earn a raise, and how many losses freeze the agent | Good runs raise the limit, losing trades cut it, a bad streak freezes the agent on every chain |
-| How long to wait before judging a trade, and how far the price may move | Your rules are enforced by contracts, around the clock, with no server to run |
+**Every agent has a public scorecard.** Each trade, verdict and change to the limit is written on-chain, together with the AI's reasoning in plain words. Anyone can check how an agent earned its limit, and nobody can edit that record.
+
+**Your protection does not depend on the AI.** The AI only proposes trades. Judging, adjusting the limit and freezing all run as a contract on Reactive Network, triggered by the market itself, so they keep working even if the AI or this website goes offline.
+
+**You stay in charge.** At any time you can pause the agent, sell its ETH back to dollars, withdraw, change the rules, turn the AI off or close the account and receive everything in one step. You can also ask the agent for its next move with **Decide now** and see its decision and reasoning within seconds.
 
 ### Who it is for
 
-- **People who want an AI to trade for them** but do not trust it with everything on day one.
-- **Builders of AI agents**, who get a public track record nobody can edit: proof of skill instead of a promise.
-- **Teams and treasuries** that want automation with hard limits, an approval step for anything large and one switch that stops it everywhere.
+Greenlight is for people who would like an AI to trade for them but are not ready to trust it with everything on day one. It also serves builders of AI agents, who gain a public track record that proves their agent's skill rather than claiming it, and teams that want automation with hard limits, an approval step for large moves and a single switch that stops everything.
 
-### Why an earned limit beats a fixed budget
+## Try it
 
-| | Fixed budget | Greenlight |
+The fastest way to see Greenlight is the one-tap check on the home page, which needs no wallet. Press **Pause it everywhere** and a real agent is paused on Base Sepolia; you then watch the scorer on Reactive Network carry that pause to Base and Unichain within a few seconds, with a link to every transaction. The agent restarts on its own afterwards.
+
+To run an agent of your own, you only need a browser wallet such as MetaMask, Rabby or Coinbase Wallet. The whole process takes under a minute and no faucet is required.
+
+| Step | What to do | What happens |
 |---|---|---|
-| A good agent | Stays boxed in at the same cap forever | Earns more room, step by step, up to your highest |
-| A bad agent | Keeps spending until the cap runs out | Loses room after each losing trade and freezes after a bad streak |
-| Proof of skill | None | Every trade judged against Chainlink and recorded on-chain |
-| Who decides | You, by hand, every time | Your rules, applied automatically by Reactive Network |
+| 1 | Open [the app](https://greenlight-earned.vercel.app/app) and press **Connect wallet** | Your wallet connects and nothing is sent |
+| 2 | Press **Get free test ETH** and confirm the free signature | 0.0025 test ETH arrives on Base Sepolia and Unichain Sepolia within seconds |
+| 3 | Keep the suggested rules or set your own, then press **Open account** | Your account opens on both chains with 10,000 test dollars, and the scorer sets your first limit |
+| 4 | Press **Decide now** | The AI reads the market and either trades or waits, explaining why |
+| 5 | Watch the **Scorecard** | Each trade is judged against Chainlink once its window has passed, and your limit moves on both chains |
+| 6 | Open **Manage** | Pause, sell back to dollars, withdraw, change the rules, turn the AI off or close the account |
 
-## Highlights
+You can also follow the [live agent](https://greenlight-earned.vercel.app/live), which trades every five minutes, browse [every transaction so far](deployments/EVIDENCE.md), or rebuild the full history from the chains yourself with `npm run replay`.
 
-| | |
-|---|---|
-| 🟢 **Earned autonomy** | The agent's limit follows its real results. Its record is public, on-chain and permanent. |
-| 🔐 **Signed decisions, checked on-chain** | The AI runs in a secure enclave on NEAR AI Cloud. Your account checks the enclave's signature before any money moves, and each signed order names its exact chain and account. |
-| ⚡ **One switch, every chain** | A freeze on Base reaches Unichain in seconds, carried by a Reactive contract. |
-| 🛡️ **Runs on its own** | Judging, raising, cutting and freezing all happen in a contract on Reactive Network, triggered by the market itself. The website and the AI are optional for your protection. |
-| 🎛️ **You stay in charge** | Pause, sell back to dollars, withdraw, change the rules, turn the AI off or close the account in one step, at any time. |
-| ⏱️ **Decide now** | Owners can ask the agent for its next move at any time and see the decision and its reason within seconds. |
-| 💬 **Plain-language reasoning** | Every decision, including each time the agent chose to wait, comes with its reason in plain words, stored inside the trade itself. |
+## A tour of the app
 
-## Walkthrough
+### The live agent
 
-### 1. Watch the live agent
-
-Open the [live app](https://greenlight-earned.vercel.app) and press **Watch the live agent**. Its page shows the earned limit on its track between lowest and highest, today's remaining room, its record, and the result so far.
+The agent's page shows its earned limit on a track between the owner's lowest and highest values, along with what is left for today, its record and its result so far. Everything on the page is read directly from the chains.
 
 <p align="center">
   <img src="docs/images/agent.png" alt="The live agent's page" width="680" />
@@ -110,197 +89,139 @@ Open the [live app](https://greenlight-earned.vercel.app) and press **Watch the 
   <img src="docs/images/phone.png" alt="The same page on a phone" width="190" />
 </p>
 
-### 2. Read its scorecard
+### The scorecard
 
-Scroll to the scorecard. Every trade is listed with the AI's own reasoning, the verdict from the scorer and how the limit moved, each with a link to its transaction.
+Every judged trade appears on the scorecard with the price it was made at, the price it was judged at, the verdict and a link to each transaction. **Why it traded** opens the AI's own reasoning, which is read from the trade transaction itself.
 
 <img src="docs/images/scorecard.png" alt="The agent's public scorecard" width="900" />
 
-### 3. Open your own account
+### Opening an account
 
-1. Open **Account**, press **Connect wallet** and choose MetaMask, Coinbase Wallet or your browser wallet.
-2. Press **Get free test ETH**. Greenlight sends enough to your wallet on Base Sepolia and Unichain Sepolia within seconds, so there is no faucet to visit.
-3. Set your rules. Every field is yours to choose, and each one is explained in plain words.
-4. Press **Open account**. Greenlight opens the account on each chain you picked and adds 10,000 test dollars.
-
-Within seconds the scorer on Reactive Network links your account and sends its first limit.
+After connecting a wallet and receiving free test ETH, a new owner chooses their rules. Each field is explained in plain words, and every value can be changed later.
 
 <img src="docs/images/open-account.png" alt="Setting the agent's rules" width="900" />
 
-### 4. Let it trade
+### Decide now
 
-The hosted agent decides every 5 minutes, and the owner can press **Decide now** to get its next move straight away, with its reason. Signed decisions that fit today's limit run at once. Anything larger, or anything the enclave did not sign, appears under **Waiting for the owner** for your yes or no.
+The hosted agent makes a decision every five minutes. An owner who does not want to wait can press **Decide now** and see the next move, with its reasoning, within seconds.
 
 <img src="docs/images/decide-now.png" alt="Decide now, with the agent's answer and reason" width="900" />
 
-### 5. Manage it at any time
+### Managing the agent
 
-Everything an owner needs sits in one place on the agent's page:
-
-| Action | What happens |
-|---|---|
-| **Pause / Resume** | Stops the agent on every chain within seconds, or starts it again from its lowest limit |
-| **Sell back to dollars** | Sells all of the agent's ETH at the live Chainlink price |
-| **Withdraw** | Sends dollars, ETH or the update balance to your wallet, any amount or all of it |
-| **Change the rules** | Opens your current rules, ready to edit; the scorer applies them on every chain |
-| **Turn the AI off / on** | Removes or restores its permission to trade; trades it already made are still judged on time |
-| **Close the account** | Pauses everywhere, removes the AI, sells back to dollars and sends everything home in one step |
+Everything an owner needs is in one place. Pausing stops the agent on every chain within seconds, and restarting it begins again from the lowest limit. Selling back converts all of the agent's ETH to dollars at the live Chainlink price. Withdrawals can return any amount of dollars, ETH or the balance kept for updates. Changing the rules opens the current values ready to edit, and the scorer applies them on every chain. Turning the AI off removes its permission to trade while its existing trades are still judged on time. Closing the account does all of this in one step and sends everything back to the owner's wallet.
 
 <img src="docs/images/manage.png" alt="Owner controls" width="900" />
-
-### 6. Check everything from the chains
-
-```bash
-git clone --recurse-submodules https://github.com/Datwebguy/greenlight-reactive
-cd greenlight-reactive && npm install
-npm run replay
-```
-
-`npm run replay` rebuilds the full history straight from the chains: every account opening, every trade and whether the enclave signed it, every verdict and limit change, and how many seconds each change took to reach each chain.
 
 ## How it works
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant AI as AI agent<br/>(NEAR AI Cloud TEE)
-    participant Acc as GreenlightAccount<br/>(Base · Unichain)
+    participant AI as AI agent<br/>(NEAR AI Cloud enclave)
+    participant Acc as GreenlightAccount<br/>(Base and Unichain)
     participant RN as GreenlightScorer<br/>(Reactive Network)
     participant CL as Chainlink ETH/USD
     AI->>Acc: trade(order, signed proof)
-    Acc->>Acc: verify enclave signature, limit, price, deadline
+    Acc->>Acc: verify the enclave signature, limit, price and deadline
     Acc-->>RN: TradeExecuted event
     RN->>RN: queue the trade
     CL-->>RN: AnswerUpdated after the window
-    RN->>RN: judge win or loss, apply the owner's rules
-    RN->>Acc: sync(new limit, frozen?) on every chain
+    RN->>RN: judge win or loss and apply the owner's rules
+    RN->>Acc: sync(new limit, frozen) on every chain
     Acc->>Acc: apply only newer updates
 ```
 
-```mermaid
-flowchart LR
-    subgraph Trading chains
-        F[GreenlightFactory] --> A[GreenlightAccount]
-        A <--> V[GreenlightVenue]
-    end
-    subgraph Reactive Network
-        S[GreenlightScorer]
-    end
-    AG[Agent service<br/>Vercel] -- signed orders --> A
-    N[NEAR AI Cloud<br/>Qwen3.8 27B in a TEE] -- signed answer --> AG
-    F -- AccountCreated --> S
-    A -- trades, owner actions, rules --> S
-    C[Chainlink ETH/USD] -- price updates --> S
-    S -- callbacks --> A
-    O((Owner)) -- rules, approvals, Manage --> A
-```
+The system has four contracts and one service.
 
-| Part | Role |
+**GreenlightAccount** ([source](contracts/GreenlightAccount.sol)) is deployed once per owner on each chain and holds the owner's funds. When the agent submits a trade, the account rebuilds the exact text that NEAR AI Cloud signs, recovers the signer and confirms that the order appears as a complete value in the model's final answer, written for this chain and this account. A signed trade within today's limit runs immediately; anything else becomes a request for the owner. The account receives the scorer's updates through Reactive's callback proxy and applies only newer ones.
+
+**GreenlightScorer** ([source](contracts/GreenlightScorer.sol)) is the Reactive contract at the heart of the system. It subscribes to each factory, then to every account's trades, owner actions, rule changes and resync requests, and to the Chainlink feed while trades are waiting to be judged. It judges each trade against the first price after its window, applies the owner's rules and sends one update per change to every account the owner holds.
+
+**GreenlightVenue** ([source](contracts/GreenlightVenue.sol)) fills trades between test dollars and test ETH at the live Chainlink price, within the price movement the owner allows, and **GreenlightFactory** ([source](contracts/GreenlightFactory.sol)) opens accounts and announces them so the scorer can begin watching.
+
+The **agent service** ([web](web)) runs alongside the Next.js app. It reads prices and limits, asks Qwen3.8 27B running in a NEAR AI Cloud enclave for a decision, and submits the signed answer to the account.
+
+### Why this needs Reactive Network
+
+Judging a trade means waiting for the market, comparing prices, keeping a running record and then changing the limit on several chains at once. No single chain can see the others, and a server performing this work would ask the owner to trust it. The scorer does all of it as a Reactive contract: it listens to every account, wakes on Chainlink price updates only while trades are waiting, and pushes each new limit to every chain the owner uses. Without Reactive there would be no judging, no earned limit and no single switch that stops the agent everywhere.
+
+### Design principles
+
+Updates are safe to repeat. Each one carries a sequence number and accounts apply only newer values, so a repeated delivery changes nothing, and anyone can call `requestResync()` to receive the current state again.
+
+The AI holds one permission only: to trade inside the rules. Withdrawing, changing rules, restarting after a freeze and approving requests all belong to the owner. Decisions from the backup model carry no enclave signature, so they always wait for the owner's approval.
+
+The scorer pays only for what it uses. It follows the price feed while a trade is waiting to be judged and unsubscribes as soon as the queue is empty, so a quiet day costs almost nothing.
+
+## Reactive Network integration
+
+Greenlight is built on reactive-lib-omni, pinned as a submodule at `3ade0dc`, and was planned, checked and diagnosed with Reactive MCP throughout development. The table below links each part of the integration to the code that implements it.
+
+| Integration point | Where |
 |---|---|
-| [`GreenlightAccount.sol`](contracts/GreenlightAccount.sol) | One per owner per chain. Holds the funds and runs a trade at once when the enclave signed it and it fits today's limit; everything else becomes a request for the owner. Rebuilds the exact text NEAR AI Cloud signs (`model:sha256(request):sha256(response)`), recovers the signer, and confirms the order is a complete value in the model's final answer, written for this chain and this account. Applies the scorer's updates through Reactive's callback proxy, newest only. Owner controls include `closePosition()` and `closeAccount(to)`. |
-| [`GreenlightScorer.sol`](contracts/GreenlightScorer.sol) | The Reactive contract. Subscribes to each factory, then to every account's trades, owner actions, rule changes and resync requests, and to the Chainlink feed while trades are waiting. Judges trades, applies the owner's rules and sends one update per change to every account the owner has. |
-| [`GreenlightVenue.sol`](contracts/GreenlightVenue.sol) | Fills trades between test dollars and test ETH at the live Chainlink price, within the allowed price movement. |
-| [`GreenlightFactory.sol`](contracts/GreenlightFactory.sol) | Opens accounts and announces them so the scorer starts watching. |
-| [`web/`](web) | The app (Next.js) and the agent service. Everything shown is read from the chains. |
+| The scorer extends `AbstractReactive` from reactive-lib-omni | [GreenlightScorer.sol:13](contracts/GreenlightScorer.sol#L13), [.gitmodules](.gitmodules) |
+| `react()` accepts calls only from the system contract and holds all of the judging logic | [GreenlightScorer.sol:163](contracts/GreenlightScorer.sol#L163) |
+| The contract subscribes itself through `SYSTEM.subscribe`, including to new accounts discovered from factory events | [GreenlightScorer.sol:198](contracts/GreenlightScorer.sol#L198), [GreenlightScorer.sol:420](contracts/GreenlightScorer.sol#L420) |
+| The Chainlink feed is followed only while trades wait, then unsubscribed | [GreenlightScorer.sol:326](contracts/GreenlightScorer.sol#L326) |
+| Results are sent with `SYSTEM.requestCallbackV_1_0`, one update to every account the owner holds | [GreenlightScorer.sol:396](contracts/GreenlightScorer.sol#L396), [GreenlightScorer.sol:408](contracts/GreenlightScorer.sol#L408) |
+| Accounts extend `AbstractCallback` and accept updates only from the callback proxy carrying the scorer's address | [GreenlightAccount.sol:17](contracts/GreenlightAccount.sol#L17), [GreenlightAccount.sol:282](contracts/GreenlightAccount.sol#L282) |
+| Sequence numbers make repeated deliveries harmless, and `requestResync()` recovers a lost update | [GreenlightAccount.sol:282](contracts/GreenlightAccount.sol#L282), [GreenlightAccount.sol:301](contracts/GreenlightAccount.sol#L301) |
+| Repeated trade events are recognised and counted once | [GreenlightScorer.sol:219](contracts/GreenlightScorer.sol#L219) |
+| Each price update judges a bounded number of trades, keeping every reaction within its gas limit | [GreenlightScorer.sol:281](contracts/GreenlightScorer.sol#L281) |
+| Reserves are funded through the system contract's `depositTo`, and the scorer can also pay from its own balance | [deploy.ts](scripts/deploy.ts) |
+| Every timer uses timestamps rather than block numbers, which is checked on every push | [test.yml](.github/workflows/test.yml) |
 
-**Why this needs Reactive Network.** Judging a trade means waiting for the market, comparing prices, keeping a running record and then changing the limit on several chains at once. No single chain can see the others, and a server doing this would ask the owner to trust it. The scorer does all of it as a Reactive contract: it listens to every account's trades, owner actions and rule changes, wakes on Chainlink price updates only while trades are waiting, and pushes each new limit to every chain the owner uses. Take Reactive away and there is no judging, no earned limit and no one-switch freeze.
+Reactive MCP was used at every stage. `plan_rc` and `get_rc_template` shaped the subscription and callback design from the official Omni template, `check_rc_source` reviewed every version of the contracts, and `get_network_info` supplied the supported chains and callback proxies. After deployment, `validate_subscription` and `list_subscriptions` confirmed that all 54 of the scorer's subscriptions are active, `get_rc_health` guided the scorer's REACT reserve, and `trace_origin_event` followed a new account from its origin transaction to the callback. The advice from `estimate_cost` is the reason the scorer follows prices only while trades are waiting.
 
-**Updates are exactly-once in effect.** Each update carries a sequence number and accounts apply only newer ones, so a repeated delivery changes nothing. Anyone can press **Fetch the latest limit** (`requestResync()`) and the scorer sends the current state again.
+## On-chain proof
 
-**The AI has one permission: to trade inside the rules.** Withdrawing, changing rules, restarting after a freeze and approving requests belong to the owner alone. Decisions from the backup model carry no enclave signature, so they always go to the owner for approval.
+Every row below is a real transaction. Delays are measured from the scorer's decision on Reactive Network to the update landing on each chain.
 
-**The scorer pays only for what it uses.** It follows the price feed only while a trade is waiting to be judged, so a quiet day costs almost nothing.
-
-## Reactive integration checklist
-
-| | What | Where |
-|---|---|---|
-| ✓ | The scorer extends `AbstractReactive` from reactive-lib-omni, pinned at `3ade0dc` | [contracts/GreenlightScorer.sol:13](contracts/GreenlightScorer.sol#L13), [.gitmodules](.gitmodules) |
-| ✓ | `react()` accepts only the system contract (`onlySystem`) and holds all the judging logic | [contracts/GreenlightScorer.sol:163](contracts/GreenlightScorer.sol#L163) |
-| ✓ | Subscriptions are made by the contract itself through `SYSTEM.subscribe`, including new accounts discovered from factory events | [contracts/GreenlightScorer.sol:198](contracts/GreenlightScorer.sol#L198), [contracts/GreenlightScorer.sol:420](contracts/GreenlightScorer.sol#L420) |
-| ✓ | The Chainlink feed is followed only while trades wait, then unsubscribed | [contracts/GreenlightScorer.sol:326](contracts/GreenlightScorer.sol#L326) |
-| ✓ | Results go out with `SYSTEM.requestCallbackV_1_0`, one update to every account the owner has | [contracts/GreenlightScorer.sol:396](contracts/GreenlightScorer.sol#L396), [contracts/GreenlightScorer.sol:408](contracts/GreenlightScorer.sol#L408) |
-| ✓ | Accounts extend `AbstractCallback` and accept updates only from the callback proxy (`onlyServiceProvider`) carrying the scorer's address (`onlyCallbackSender`) | [contracts/GreenlightAccount.sol:17](contracts/GreenlightAccount.sol#L17), [contracts/GreenlightAccount.sol:282](contracts/GreenlightAccount.sol#L282) |
-| ✓ | Updates carry a sequence number, so a repeated delivery changes nothing; `requestResync()` asks for the latest state again | [contracts/GreenlightAccount.sol:282](contracts/GreenlightAccount.sol#L282), [contracts/GreenlightAccount.sol:301](contracts/GreenlightAccount.sol#L301) |
-| ✓ | Repeated trade events are recognised and counted once | [contracts/GreenlightScorer.sol:219](contracts/GreenlightScorer.sol#L219) |
-| ✓ | Each price update judges a bounded number of trades, keeping every reaction within its gas limit | [contracts/GreenlightScorer.sol:281](contracts/GreenlightScorer.sol#L281) |
-| ✓ | Reserves funded through the system contract's `depositTo`; the scorer also pays from its own balance through `pay()` | [scripts/deploy.ts](scripts/deploy.ts) |
-| ✓ | Timestamps everywhere, never block numbers (checked on every push) | [.github/workflows/test.yml](.github/workflows/test.yml) |
-| ✓ | Every contract verified on Sourcify | [Deployed contracts](#deployed-contracts) |
-
-## The full loop, on-chain
-
-Every row is a real transaction. The delay is measured from the scorer's decision on Reactive Network to the update landing on each chain.
-
-**The live agent today: signed trades, judged on Reactive, the limit moved on both chains**
+### The live agent: signed trades, judged on Reactive, the limit adjusted on both chains
 
 | Step | Network | What happened | Transaction |
 |---|---|---|---|
-| Origin event | Base Sepolia | The AI bought $12.50 of ETH at $1,706.33. The order named this chain and this account, and the account verified the NEAR enclave's signature before filling it | [`0x3152ce…c32b`](https://sepolia.basescan.org/tx/0x3152ce71b24bb49824de7419b04b5fb60c8ab67b720e4ebd345cf9c62a06c32b) |
-| Origin event | Unichain Sepolia | The same decision on the owner's Unichain account, at $1,703.24 | [`0xfcdee4…b6ae`](https://sepolia.uniscan.xyz/tx/0xfcdee48eebe5c5bf30bb2bc2b13037ae053350be02f32f3d54cf539a1a74b6ae) |
-| Reaction | Reactive Lasna | On the first Chainlink update after the window ($1,712.15), the scorer judged both trades as wins: +0.34% and +0.52% | [`0x7665a4…69ef`](https://lasna.reactscan.net/tx/0x7665a4bfe886503cef04c26f1fa1953d638f9388509b383db7d712031a2f69ef) |
-| Reaction | Reactive Lasna | The next update ($1,712.03) judged three later trades as losses and cut the limit step by step from $50.00 to $21.10 | [`0x819ed0…0047`](https://lasna.reactscan.net/tx/0x819ed0aec3afacca07f450e2a8d1604f0edbd727541ebaa06bf0f4808d5b0047) |
-| Callback | Base Sepolia | The new limit, $21.10, applied 2 seconds after the decision | [`0xc0803a…2245`](https://sepolia.basescan.org/tx/0xc0803adb2a665c68e9fbac8a7d6ecf82996f433eb3dd7b5ace96035e5b282245) |
-| Callback | Unichain Sepolia | The same limit applied 3 seconds after the decision | [`0xe5fdd9…30aa`](https://sepolia.uniscan.xyz/tx/0xe5fdd9569d32b1b4f8d79d674488b58bf875c82e02d9b6813bae1337961730aa) |
+| Origin | Base Sepolia | The AI bought $12.50 of ETH at $1,706.33. The order named this chain and account, and the account verified the enclave's signature before filling it | [`0x3152ce…c32b`](https://sepolia.basescan.org/tx/0x3152ce71b24bb49824de7419b04b5fb60c8ab67b720e4ebd345cf9c62a06c32b) |
+| Origin | Unichain Sepolia | The same decision on the owner's Unichain account, filled at $1,703.24 | [`0xfcdee4…b6ae`](https://sepolia.uniscan.xyz/tx/0xfcdee48eebe5c5bf30bb2bc2b13037ae053350be02f32f3d54cf539a1a74b6ae) |
+| Reaction | Reactive Lasna | On the first Chainlink update after the window, the scorer judged both trades as wins, at +0.34% and +0.52% | [`0x7665a4…69ef`](https://lasna.reactscan.net/tx/0x7665a4bfe886503cef04c26f1fa1953d638f9388509b383db7d712031a2f69ef) |
+| Reaction | Reactive Lasna | The next update judged three later trades as losses and cut the limit step by step from $50.00 to $21.10 | [`0x819ed0…0047`](https://lasna.reactscan.net/tx/0x819ed0aec3afacca07f450e2a8d1604f0edbd727541ebaa06bf0f4808d5b0047) |
+| Callback | Base Sepolia | The new limit of $21.10 applied two seconds after the decision | [`0xc0803a…2245`](https://sepolia.basescan.org/tx/0xc0803adb2a665c68e9fbac8a7d6ecf82996f433eb3dd7b5ace96035e5b282245) |
+| Callback | Unichain Sepolia | The same limit applied three seconds after the decision | [`0xe5fdd9…30aa`](https://sepolia.uniscan.xyz/tx/0xe5fdd9569d32b1b4f8d79d674488b58bf875c82e02d9b6813bae1337961730aa) |
 
-**The first trade judged, and the limit cut on its own**
-
-| Step | Network | What happened | Transaction |
-|---|---|---|---|
-| Origin event | Base Sepolia | The AI bought $12.50 of ETH at $1,684.61; the account verified the NEAR enclave's signature before filling it | [`0x8922e2…5ffb`](https://sepolia.basescan.org/tx/0x8922e273bd288850dad64d1424fe0e2ef0bf40bb4ceb00e2d06bf956a8665ffb) |
-| Reaction | Reactive Lasna | On the first Chainlink update after the 10-minute window, the scorer judged it (−0.18%) and cut the limit from $50.00 to $37.50 | [`0xe8a402…662f`](https://lasna.reactscan.net/tx/0xe8a402ad2a4248f254b9e0b3d1154329732340e387b6f137f8cc603f387e662f) |
-| Callback | Base Sepolia | The account applied the new limit, 1 second after the decision | [`0x0e2556…237f`](https://sepolia.basescan.org/tx/0x0e2556e155fef9b4debdedbe81f095c93472aae7eae5eda4f1e8fc52a365237f) |
-
-**One freeze, every chain**
+### One freeze reaching every chain
 
 | Step | Network | What happened | Transaction |
 |---|---|---|---|
-| Origin event | Base Sepolia | The owner pressed freeze on one chain | [`0x1ecc8d…00c6`](https://sepolia.basescan.org/tx/0x1ecc8d5480c5be6e0d319e6ac238ae1dfa34971fa02c23f4a1013931650000c6) |
+| Origin | Base Sepolia | The owner paused the agent on one chain | [`0x1ecc8d…00c6`](https://sepolia.basescan.org/tx/0x1ecc8d5480c5be6e0d319e6ac238ae1dfa34971fa02c23f4a1013931650000c6) |
 | Reaction | Reactive Lasna | The scorer froze the agent and sent the update to every account | [`0xad5ded…135e`](https://lasna.reactscan.net/tx/0xad5ded3aa2d69f0a96b6e318747755966474a7af2720678abb9c5305a239135e) |
-| Callback | Base Sepolia | Frozen, 3 seconds after the decision | [`0xc52dcc…1e15`](https://sepolia.basescan.org/tx/0xc52dcc43c98db18027a0be0f067971176270eb8345a29c6f9d83f14a4ff61e15) |
-| Callback | Unichain Sepolia | Frozen, 4 seconds after the decision | [`0x2bdd1c…5816`](https://sepolia.uniscan.xyz/tx/0x2bdd1cdb1273121e0311601b6196822ebcef0f7bc1de8f5949ccecd491935816) |
+| Callback | Base Sepolia | Frozen three seconds after the decision | [`0xc52dcc…1e15`](https://sepolia.basescan.org/tx/0xc52dcc43c98db18027a0be0f067971176270eb8345a29c6f9d83f14a4ff61e15) |
+| Callback | Unichain Sepolia | Frozen four seconds after the decision | [`0x2bdd1c…5816`](https://sepolia.uniscan.xyz/tx/0x2bdd1cdb1273121e0311601b6196822ebcef0f7bc1de8f5949ccecd491935816) |
 
-**A new account picked up by the scorer, on two chains**
+### A new account linked by the scorer on two chains
 
 | Step | Network | What happened | Transaction |
 |---|---|---|---|
-| Origin event | Base Sepolia | Account opened through the factory | [`0x57e26b…f6f7`](https://sepolia.basescan.org/tx/0x57e26b266146b645a15d77f35ddf2f6111f8ba6f35efe553328cd90a0f40f6f7) |
+| Origin | Base Sepolia | An account was opened through the factory | [`0x57e26b…f6f7`](https://sepolia.basescan.org/tx/0x57e26b266146b645a15d77f35ddf2f6111f8ba6f35efe553328cd90a0f40f6f7) |
 | Reaction | Reactive Lasna | The scorer subscribed to the new account and set its first limit | [`0x86483c…ef18`](https://lasna.reactscan.net/tx/0x86483ce837cfaa0f0a1297043e4a12b34d169577588200468d8df3a1368fef18) |
-| Callback | Base Sepolia | First limit applied | [`0x04fb4c…198a`](https://sepolia.basescan.org/tx/0x04fb4c93720c51fd8e24096c8e2b7ebb99ff7d06485c0977de892100851c198a) |
+| Callback | Base Sepolia | The first limit was applied | [`0x04fb4c…198a`](https://sepolia.basescan.org/tx/0x04fb4c93720c51fd8e24096c8e2b7ebb99ff7d06485c0977de892100851c198a) |
 | Callback | Unichain Sepolia | The owner's second account received the same limit | [`0xa9162a…2873`](https://sepolia.uniscan.xyz/tx/0xa9162ae095e25330d54ca13a2b64730b879511852b97f338a20ec9a2c9ac2873) |
 
-Measured over 30 owner actions, the update reaches **Base in 1.9 seconds** and **Unichain in 3.9 seconds** from the owner's transaction (median), and every one of the 30 arrived on both chains ([LATENCY.md](docs/LATENCY.md)). `npm run replay` recomputes these numbers from the chains, and `npm run replay -- --deployment testnet-v1` covers the first deployment, where the first trade and the freeze above happened.
+### Speed
 
-## Reactive Network tools used
-
-- **reactive-lib-omni**, pinned as a submodule. The scorer extends `AbstractReactive`, subscribes and unsubscribes through the system contract from inside `react()`, and requests callbacks with `requestCallbackV_1_0`. Accounts extend `AbstractCallback` and accept updates only from the callback proxy on behalf of the scorer.
-- **Reactive MCP** (`mcp.rnk.dev`), throughout the build:
-  - `plan_rc` and `get_rc_template` to design the subscriptions and callbacks from the official Omni template
-  - `check_rc_source` on every version of the scorer and accounts
-  - `get_network_info` for supported chains and their callback proxies
-  - `validate_subscription` and `list_subscriptions` to confirm every subscription after deployment
-  - `get_rc_health` for funding and reserves; on its advice the scorer keeps a REACT reserve through the system contract's `depositTo`, and `list_subscriptions` reports all 54 of its subscriptions active
-  - `trace_origin_event` to follow an account from its origin transaction to the callback
-  - `estimate_cost`, which shaped the scorer's habit of following prices only while trades wait
-  - `search_docs` for faucet, delivery and debugging guidance
-- **Lasna testnet** for the scorer, the **REACT faucets**, the system contract's **`depositTo`** for reserves, the **callback proxies** on Base Sepolia and Unichain Sepolia, and **Reactscan** for every reactive transaction above.
-- **Timestamps rather than block counts** for every window, deadline and daily reset, matching Base Sepolia's 200 ms blocks.
+Across 30 measured owner actions, an update reached Base in a median of **1.9 seconds** and Unichain in **3.9 seconds** from the owner's transaction, and all 30 arrived on both chains. The method and every transaction are published in [LATENCY.md](docs/LATENCY.md) and [latency.csv](docs/data/latency.csv). A complete history of the live agents is kept in [EVIDENCE.md](deployments/EVIDENCE.md).
 
 ## Quality and testing
+
+The contract suite contains 57 tests and runs on every push. Among them is a test that verifies a real response signed inside NEAR AI Cloud's enclave within the account contract, alongside tests showing that repeated events, late updates, old rules and old price rounds change nothing.
+
+To confirm the tests guard what matters, every safety check in the account, venue and scorer was removed one at a time and the suite was run against each broken version. All 47 deliberate faults were caught. The contracts, agent service and app were also reviewed by an independent model through NEAR AI Cloud, and every confirmed finding was fixed and covered by a test. Finally, the full user journey, from an empty wallet to opening, managing and closing an account, was exercised in a real browser with real wallets on testnet.
+
+The details of each check are recorded in [REVIEW.md](docs/REVIEW.md). To run the tests yourself:
 
 ```bash
 npm test
 ```
-
-| Check | Result |
-|---|---|
-| Contract tests | **57 passing**, including a real response signed by NEAR AI Cloud's enclave verified inside the account contract |
-| Break testing | **47 of 47** deliberate faults caught: each safety check in the account, venue and scorer was removed one at a time, and the tests failed every time ([review record](docs/REVIEW.md)) |
-| Replay safety | Repeated events, late updates, old rules and old price rounds are all shown to change nothing |
-| Independent review | The contracts, agent service and app were reviewed by independent models through NEAR AI Cloud; every confirmed finding is fixed and covered by a test |
-| End-to-end | Opening an account, pausing, resuming, changing rules, switching the AI, withdrawing and closing were run in a real browser with a real wallet on testnet |
-| Speed | Every owner action timed from Base, through the scorer on Lasna, to both chains ([LATENCY.md](docs/LATENCY.md), every transaction in [latency.csv](docs/data/latency.csv)) |
-| Source verification | Every contract is verified on Sourcify |
 
 ## Deployed contracts
 
@@ -314,26 +235,36 @@ npm test
 | GreenlightVenue | Unichain Sepolia (1301) | [`0xeb0be28cca20db3a46542fc833685ceb56aaad9b`](https://sepolia.uniscan.xyz/address/0xeb0be28cca20db3a46542fc833685ceb56aaad9b) |
 | Live agent account | Unichain Sepolia (1301) | [`0x2E4EdF13EA34ef4e51B17923B99d2aF3cA820489`](https://sepolia.uniscan.xyz/address/0x2E4EdF13EA34ef4e51B17923B99d2aF3cA820489) |
 
-Verified sources: [scorer](https://sourcify.dev/server/repo-ui/5318007/0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8) · Base [factory](https://sourcify.dev/server/repo-ui/84532/0xc7872882f178eea3c137b6715770b1c62deedc0f), [venue](https://sourcify.dev/server/repo-ui/84532/0x86a290b555be160087f50bfc585ebc0f8ee4f55a), [account](https://sourcify.dev/server/repo-ui/84532/0x4438175cCbaE9c348e52a0FE1a43C8a3c7d2E1C7) · Unichain [factory](https://sourcify.dev/server/repo-ui/1301/0xb7ea53e2077cbf35fed6db5535423a9641fbb612), [venue](https://sourcify.dev/server/repo-ui/1301/0xeb0be28cca20db3a46542fc833685ceb56aaad9b), [account](https://sourcify.dev/server/repo-ui/1301/0x2E4EdF13EA34ef4e51B17923B99d2aF3cA820489)
+Every contract is verified on Sourcify, so anyone can compare the published source with the deployed code: the [scorer](https://sourcify.dev/server/repo-ui/5318007/0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8); on Base, the [factory](https://sourcify.dev/server/repo-ui/84532/0xc7872882f178eea3c137b6715770b1c62deedc0f), [venue](https://sourcify.dev/server/repo-ui/84532/0x86a290b555be160087f50bfc585ebc0f8ee4f55a) and [account](https://sourcify.dev/server/repo-ui/84532/0x4438175cCbaE9c348e52a0FE1a43C8a3c7d2E1C7); and on Unichain, the [factory](https://sourcify.dev/server/repo-ui/1301/0xb7ea53e2077cbf35fed6db5535423a9641fbb612), [venue](https://sourcify.dev/server/repo-ui/1301/0xeb0be28cca20db3a46542fc833685ceb56aaad9b) and [account](https://sourcify.dev/server/repo-ui/1301/0x2E4EdF13EA34ef4e51B17923B99d2aF3cA820489).
 
-Every address and deployment transaction is in [`deployments/testnet.json`](deployments/testnet.json), with earlier factories listed under `previousFactories`; their accounts keep running and appear in the app. The first deployment is recorded in [`deployments/testnet-v1.json`](deployments/testnet-v1.json). Prices come from the Chainlink ETH/USD feed on Base Sepolia (aggregator `0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3`).
+All addresses and deployment transactions are recorded in [testnet.json](deployments/testnet.json), where earlier factories are listed under `previousFactories`; their accounts continue to run and appear in the app. Prices come from the Chainlink ETH/USD feed on Base Sepolia, aggregator `0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3`.
 
 ## Run it yourself
 
+Clone the repository with its submodule, install the dependencies and run the tests:
+
 ```bash
-npm install && npm run build                 # compile contracts and export interfaces to the app
-npm test                                     # contract tests
-cd web && npm install && npm run dev         # the app, reading the deployed contracts
+git clone --recurse-submodules https://github.com/Datwebguy/greenlight-reactive
+cd greenlight-reactive
+npm install && npm run build     # compile the contracts and export their interfaces to the app
+npm test                         # run the contract tests
+npm run replay                   # rebuild the full history from the chains
 ```
 
-**Deploy your own copy.** Put `DEPLOYER_PRIVATE_KEY` in an env file outside the repo, fund it with Base Sepolia ETH and Lasna REACT, then run `node --env-file=<file> scripts/deploy.ts`. The script records every address in `deployments/testnet.json`, and the app picks them up.
+To start the app against the deployed contracts:
 
-**Run the agent service.** Set `AGENT_PRIVATE_KEY`, `NEAR_AI_API_KEY`, `OPENAI_API_KEY` and `CRON_SECRET` in the app's environment. `/api/agent/tick` runs one round of decisions and is called every 5 minutes. `/api/agent/decide` answers an owner's **Decide now**, proven by a free wallet signature.
+```bash
+cd web && npm install && npm run dev
+```
+
+To deploy your own copy, place `DEPLOYER_PRIVATE_KEY` in an environment file outside the repository, fund that wallet with Base Sepolia ETH and Lasna REACT, and run `node --env-file=<file> scripts/deploy.ts`. The script records every address in `deployments/testnet.json`, and the app picks them up automatically.
+
+The agent service needs `AGENT_PRIVATE_KEY`, `NEAR_AI_API_KEY`, `OPENAI_API_KEY` and `CRON_SECRET` in the app's environment. The `/api/agent/tick` endpoint runs one round of decisions and is called every five minutes, while `/api/agent/decide` answers an owner's **Decide now**, verified by a free wallet signature.
 
 ## Built with
 
-[Reactive Network](https://dev.reactive.network) (reactive-lib-omni) · [NEAR AI Cloud](https://docs.near.ai/cloud/private-inference) private inference · [Chainlink](https://docs.chain.link/data-feeds) price feeds · Hardhat 3 · OpenZeppelin · Next.js · viem and wagmi · Vercel
+[Reactive Network](https://dev.reactive.network) with reactive-lib-omni and Reactive MCP, [NEAR AI Cloud](https://docs.near.ai/cloud/private-inference) private inference, [Chainlink](https://docs.chain.link/data-feeds) price feeds, Base and Unichain, Hardhat 3, OpenZeppelin, Next.js, viem, wagmi and Vercel.
 
 ## License
 
-[MIT](LICENSE)
+Released under the [MIT License](LICENSE).

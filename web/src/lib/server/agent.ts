@@ -226,7 +226,9 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
 
   const nonce = view.nextNonce;
   const deadline = Math.floor(Date.now() / 1000) + ORDER_TTL_S;
-  const sizes = [...new Set([0.25, 0.5, 1].map((f) => Math.floor(view.remainingCents * f)))].filter((c) => c >= 100);
+  // Each trade is a slice of the day's limit (a tenth or a quarter), so the agent keeps trading through the day
+  // instead of spending its whole limit at once. Its earned limit still sets the total.
+  const sizes = [...new Set([0.1, 0.25].map((f) => Math.min(Math.floor(view.limitCents * f), view.remainingCents)))].filter((c) => c >= 100);
   const ethValueCents = Math.floor(view.eth * priceCents);
   // The account itself says how each order must be written, so every account version is served correctly (newer ones
   // name their chain and address, so a signed decision only ever authorises that one account).

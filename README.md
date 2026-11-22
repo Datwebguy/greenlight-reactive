@@ -20,7 +20,7 @@ Greenlight lets an AI agent trade with your money, within a limit you sign once,
 
 [Live app](https://greenlight-earned.vercel.app) · [Walkthrough](#walkthrough) · [How it works](#how-it-works) · [On-chain proof](#the-full-loop-on-chain) · [Contracts](#deployed-contracts) · [Run it](#run-it-yourself)
 
-<img src="docs/images/home.png" alt="Greenlight home page" width="900" />
+<img src="docs/images/home.png" alt="Greenlight home page, light" width="440" /> <img src="docs/images/home-dark.png" alt="Greenlight home page, dark" width="440" />
 
 </div>
 
@@ -67,7 +67,11 @@ People trust a new hire with a little responsibility first, then give them more 
 
 Open the [live app](https://greenlight-earned.vercel.app) and press **Watch the live agent**. Its page shows the earned limit on its track between lowest and highest, today's remaining room, its record, and the result so far.
 
-<img src="docs/images/agent.png" alt="The live agent's page" width="900" />
+<p align="center">
+  <img src="docs/images/agent.png" alt="The live agent's page" width="680" />
+  &nbsp;
+  <img src="docs/images/phone.png" alt="The same page on a phone" width="190" />
+</p>
 
 ### 2. Read its scorecard
 
@@ -170,7 +174,18 @@ flowchart LR
 
 Every row is a real transaction. The delay is measured from the scorer's decision on Reactive Network to the update landing on each chain.
 
-**A trade judged, and the limit cut on its own**
+**The live agent today: signed trades, judged on Reactive, the limit moved on both chains**
+
+| Step | Network | What happened | Transaction |
+|---|---|---|---|
+| Origin event | Base Sepolia | The AI bought $12.50 of ETH at $1,706.33. The order named this chain and this account, and the account verified the NEAR enclave's signature before filling it | [`0x3152ce…c32b`](https://sepolia.basescan.org/tx/0x3152ce71b24bb49824de7419b04b5fb60c8ab67b720e4ebd345cf9c62a06c32b) |
+| Origin event | Unichain Sepolia | The same decision on the owner's Unichain account, at $1,703.24 | [`0xfcdee4…b6ae`](https://sepolia.uniscan.xyz/tx/0xfcdee48eebe5c5bf30bb2bc2b13037ae053350be02f32f3d54cf539a1a74b6ae) |
+| Reaction | Reactive Lasna | On the first Chainlink update after the window ($1,712.15), the scorer judged both trades as wins: +0.34% and +0.52% | [`0x7665a4…69ef`](https://lasna.reactscan.net/tx/0x7665a4bfe886503cef04c26f1fa1953d638f9388509b383db7d712031a2f69ef) |
+| Reaction | Reactive Lasna | The next update ($1,712.03) judged three later trades as losses and cut the limit step by step from $50.00 to $21.10 | [`0x819ed0…0047`](https://lasna.reactscan.net/tx/0x819ed0aec3afacca07f450e2a8d1604f0edbd727541ebaa06bf0f4808d5b0047) |
+| Callback | Base Sepolia | The new limit, $21.10, applied 2 seconds after the decision | [`0xc0803a…2245`](https://sepolia.basescan.org/tx/0xc0803adb2a665c68e9fbac8a7d6ecf82996f433eb3dd7b5ace96035e5b282245) |
+| Callback | Unichain Sepolia | The same limit applied 3 seconds after the decision | [`0xe5fdd9…30aa`](https://sepolia.uniscan.xyz/tx/0xe5fdd9569d32b1b4f8d79d674488b58bf875c82e02d9b6813bae1337961730aa) |
+
+**The first trade judged, and the limit cut on its own**
 
 | Step | Network | What happened | Transaction |
 |---|---|---|---|
@@ -196,7 +211,7 @@ Every row is a real transaction. The delay is measured from the scorer's decisio
 | Callback | Base Sepolia | First limit applied | [`0x04fb4c…198a`](https://sepolia.basescan.org/tx/0x04fb4c93720c51fd8e24096c8e2b7ebb99ff7d06485c0977de892100851c198a) |
 | Callback | Unichain Sepolia | The owner's second account received the same limit | [`0xa9162a…2873`](https://sepolia.uniscan.xyz/tx/0xa9162ae095e25330d54ca13a2b64730b879511852b97f338a20ec9a2c9ac2873) |
 
-A decision on Reactive Network reaches each chain in **2 seconds** typically and **4 seconds** at most. `npm run replay` recomputes these numbers from the chains, and `npm run replay -- --deployment testnet-v1` covers the first deployment, where the trade and freeze above happened.
+A decision on Reactive Network reaches each chain in **2 to 3 seconds** typically and **6 seconds** at most. `npm run replay` recomputes these numbers from the chains, and `npm run replay -- --deployment testnet-v1` covers the first deployment, where the first trade and the freeze above happened.
 
 ## Reactive Network tools used
 

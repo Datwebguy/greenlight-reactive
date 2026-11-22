@@ -43,16 +43,18 @@ const send = async (label: string, p: Promise<Hex>) => {
 const agentGas = parseEther(process.env.AGENT_GAS_ETH ?? "0.01");
 if (agentGas > 0n) await send("Agent gas", wallet.sendTransaction({ to: agent, value: agentGas }));
 
+// Every rule can be set from the environment; the defaults are the live agent's rules.
+const env = (k: string, d: number) => Number(process.env[k] ?? d);
 const policy = {
-  startLimitCents: 50_00n,
-  ceilingCents: 250_00n,
-  floorCents: 10_00n,
-  scoreWindow: 10 * 60,
-  maxSlippageBps: 100,
-  stepBps: 2_500,
-  raiseAfterWins: 3,
-  freezeAfterLosses: 3,
-  maxLossCents: 5_00n,
+  startLimitCents: BigInt(env("START_CENTS", 50_00)),
+  ceilingCents: BigInt(env("CEILING_CENTS", 250_00)),
+  floorCents: BigInt(env("FLOOR_CENTS", 10_00)),
+  scoreWindow: env("WINDOW_SECONDS", 10 * 60),
+  maxSlippageBps: env("SLIPPAGE_BPS", 100),
+  stepBps: env("STEP_BPS", 2_500),
+  raiseAfterWins: env("RAISE_AFTER_WINS", 3),
+  freezeAfterLosses: env("FREEZE_AFTER_LOSSES", 3),
+  maxLossCents: BigInt(env("MAX_LOSS_CENTS", 5_00)),
 };
 const created = await send(
   "Open account",

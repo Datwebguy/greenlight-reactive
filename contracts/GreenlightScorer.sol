@@ -64,6 +64,8 @@ contract GreenlightScorer is AbstractReactive {
         int256 pnlCents
     );
     event LimitUpdated(address indexed owner, uint64 indexed seq, uint64 limitCents, bool frozen, uint8 reason);
+    event AccountIgnored(address indexed owner, uint256 chainId, address account);
+    event PriceWatch(bool watching);
 
     // Topics of the events this contract reacts to. Checked against the real event selectors in the tests.
     uint256 internal constant ANSWER_UPDATED = uint256(keccak256("AnswerUpdated(int256,uint256,uint256)"));
@@ -76,6 +78,7 @@ contract GreenlightScorer is AbstractReactive {
     address public immutable owner;
     uint64 public immutable callbackGasLimit;
     uint256 public immutable maxSettlePerPrice;
+    uint256 public immutable maxAccountsPerOwner;
 
     uint256 public priceChainId;
     address public priceFeed;
@@ -92,6 +95,8 @@ contract GreenlightScorer is AbstractReactive {
 
     uint256 public lastPrice;
     uint256 public lastPriceAt;
+    /// @notice True while trades wait to be judged; price updates are followed (and paid for) only then.
+    bool public watchingPrice;
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner(msg.sender);
@@ -102,15 +107,20 @@ contract GreenlightScorer is AbstractReactive {
     /// @param priceFeed_ The aggregator contract that emits `AnswerUpdated` (not the proxy).
     /// @param callbackGasLimit_ Gas for each update sent to an account (at least 100,000).
     /// @param maxSettlePerPrice_ Most trades judged per price update, to keep each reaction within its gas limit.
-    constructor(uint256 priceChainId_, address priceFeed_, uint64 callbackGasLimit_, uint256 maxSettlePerPrice_)
-        payable
-    {
+    /// @param maxAccountsPerOwner_ Most accounts linked per owner, so one update always fits in one reaction.
+    constructor(
+        uint256 priceChainId_,
+        address priceFeed_,
+        uint64 callbackGasLimit_,
+        uint256 maxSettlePerPrice_,
+        uint256 maxAccountsPerOwner_
+    ) payable {
         owner = msg.sender;
         callbackGasLimit = callbackGasLimit_;
-        maxSettlePerPrice = maxSettlePerPrice_;
+        maxSettlePerPrice = maxSettlePerPrice_ == 0 ? 1 : maxSettlePerPrice_;
+        maxAccountsPerOwner = maxAccountsPerOwner_ == 0 ? 1 : maxAccountsPerOwner_;
         priceChainId = priceChainId_;
         priceFeed = priceFeed_;
-        _subscribe(priceChainId_, priceFeed_, ANSWER_UPDATED);
         emit PriceFeedSet(priceChainId_, priceFeed_);
     }
 
@@ -127,11 +137,18 @@ contract GreenlightScorer is AbstractReactive {
 
     /// @notice Follow a new aggregator, for example after Chainlink upgrades the feed.
     function setPriceFeed(uint256 chainId, address feed) external onlyOwner {
-        _unsubscribe(priceChainId, priceFeed, ANSWER_UPDATED);
+        bool watching = watchingPrice;
+        if (watching) _unsubscribe(priceChainId, priceFeed, ANSWER_UPDATED);
         priceChainId = chainId;
         priceFeed = feed;
-        _subscribe(chainId, feed, ANSWER_UPDATED);
+        lastPriceAt = 0; // the new feed keeps its own clock
+        if (watching) _subscribe(chainId, feed, ANSWER_UPDATED);
         emit PriceFeedSet(chainId, feed);
+    }
+
+    /// @notice Recover REACT the scorer no longer needs.
+    function withdraw(address payable to, uint256 amount) external onlyOwner {
+        _pay(to, amount);
     }
 
     /// @notice Settle any debt from the balance; a contract in debt receives no events.
@@ -170,6 +187,10 @@ contract GreenlightScorer is AbstractReactive {
         address account = address(uint160(log.topic2));
         AccountInfo storage info = accountInfo[log.chainId][account];
         if (info.owner != address(0)) return; // already linked: a repeated event
+        if (_linked[acctOwner].length >= maxAccountsPerOwner) {
+            emit AccountIgnored(acctOwner, log.chainId, account);
+            return;
+        }
 
         info.owner = acctOwner;
         info.policyVersion = 1;
@@ -200,6 +221,7 @@ contract GreenlightScorer is AbstractReactive {
 
         (uint8 side, uint64 amountCents, uint256 price, uint64 timestamp,,) =
             abi.decode(log.data, (uint8, uint64, uint256, uint64, bool, bool));
+        if (price == 0 || amountCents == 0 || side > 1) return;
         uint64 maturity = timestamp + _books[acctOwner].policy.scoreWindow;
         _queue.push(
             PendingTrade({
@@ -214,6 +236,7 @@ contract GreenlightScorer is AbstractReactive {
             })
         );
         emit TradeQueued(acctOwner, log.chainId, log.contractAddress, tradeId, maturity);
+        _watchPrice(true);
     }
 
     function _onPolicy(LogRecord calldata log, AccountInfo storage info, address acctOwner) private {
@@ -260,21 +283,28 @@ contract GreenlightScorer is AbstractReactive {
         if (answer <= 0) return;
         uint256 exitPrice = uint256(answer);
         uint256 updatedAt = abi.decode(log.data, (uint256));
-        if (updatedAt < lastPriceAt) return; // an older round arriving late
+        if (updatedAt <= lastPriceAt) return; // the same or an older round arriving late
         lastPrice = exitPrice;
         lastPriceAt = updatedAt;
 
+        // Look at a bounded number of waiting trades. Ripe ones are judged; the rest go to the back of the queue,
+        // so a trade with a long window never holds up anyone else's.
         uint256 head = queueHead;
         uint256 end = _queue.length;
-        uint256 limit = maxSettlePerPrice;
-        address[] memory touched = new address[](limit);
+        uint256 budget = maxSettlePerPrice;
+        address[] memory touched = new address[](budget);
         uint256 nTouched;
+        uint256 judged;
 
-        for (uint256 n; n < limit && head < end; ++n) {
+        for (uint256 n; n < budget * 2 && head < end && judged < budget; ++n) {
             PendingTrade memory t = _queue[head];
-            if (t.maturity > updatedAt) break;
             delete _queue[head];
             ++head;
+            if (t.maturity > updatedAt) {
+                _queue.push(t);
+                continue;
+            }
+            ++judged;
             if (_score(t, exitPrice)) {
                 bool seen;
                 for (uint256 i; i < nTouched; ++i) {
@@ -289,6 +319,16 @@ contract GreenlightScorer is AbstractReactive {
             Book storage b = _books[touched[i]];
             _broadcast(touched[i], b, _lastReason[touched[i]]);
         }
+        if (head == _queue.length) _watchPrice(false);
+    }
+
+    /// @dev Follows the price feed only while trades wait to be judged.
+    function _watchPrice(bool on) private {
+        if (watchingPrice == on) return;
+        watchingPrice = on;
+        if (on) _subscribe(priceChainId, priceFeed, ANSWER_UPDATED);
+        else _unsubscribe(priceChainId, priceFeed, ANSWER_UPDATED);
+        emit PriceWatch(on);
     }
 
     /// @return changed True when the owner's limit or frozen state changed.

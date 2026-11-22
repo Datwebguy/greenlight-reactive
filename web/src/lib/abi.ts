@@ -107,6 +107,11 @@ export const greenlightAccountAbi = [
   },
   {
     "inputs": [],
+    "name": "BadPrice",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "BadSide",
     "type": "error"
   },
@@ -1783,6 +1788,11 @@ export const greenlightScorerAbi = [
         "internalType": "uint256",
         "name": "maxSettlePerPrice_",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxAccountsPerOwner_",
+        "type": "uint256"
       }
     ],
     "stateMutability": "payable",
@@ -1835,6 +1845,31 @@ export const greenlightScorerAbi = [
     "inputs": [],
     "name": "TransferFailed",
     "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "AccountIgnored",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -1965,6 +2000,19 @@ export const greenlightScorerAbi = [
       }
     ],
     "name": "PriceFeedSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "watching",
+        "type": "bool"
+      }
+    ],
+    "name": "PriceWatch",
     "type": "event"
   },
   {
@@ -2345,6 +2393,19 @@ export const greenlightScorerAbi = [
   },
   {
     "inputs": [],
+    "name": "maxAccountsPerOwner",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "maxSettlePerPrice",
     "outputs": [
       {
@@ -2605,6 +2666,37 @@ export const greenlightScorerAbi = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "watchingPrice",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

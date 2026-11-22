@@ -25,6 +25,7 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
     error ZeroAmount();
     error UnknownRequest();
     error BadSide();
+    error BadPrice();
 
     /// @notice A trade the agent wants to make. `refPriceCents` is the ETH price the decision was based on.
     struct Order {
@@ -118,6 +119,7 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
         if (msg.sender != agent) revert OnlyAgent();
         if (frozen()) revert Frozen();
         if (order.side > 1) revert BadSide();
+        if (order.refPriceCents == 0) revert BadPrice();
         if (order.nonce != nextNonce) revert BadNonce(nextNonce);
         if (order.deadline < block.timestamp) revert Expired();
         if (order.amountCents == 0) revert ZeroAmount();

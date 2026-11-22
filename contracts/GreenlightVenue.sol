@@ -81,6 +81,7 @@ contract GreenlightVenue {
         returns (uint256 fillPrice, uint256 ethAmount)
     {
         if (usdAmount == 0) revert ZeroAmount();
+        if (refPrice == 0) revert BadPrice(); // a zero reference would switch off the price-move check
         uint256 updatedAt;
         (fillPrice, updatedAt) = price();
         // ether (18 decimals) = dollars (6 decimals) * 10^12 * 10^feedDecimals / price

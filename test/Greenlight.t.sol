@@ -135,7 +135,7 @@ contract GreenlightTest is Test {
         feed.set(1_678_00000000); // $1,678.00
 
         venue = new GreenlightVenue(feed, 1 hours, 10_000e6);
-        scorer = new GreenlightScorer(block.chainid, address(feed), 300_000, 5);
+        scorer = new GreenlightScorer(block.chainid, address(feed), 300_000, 5, 4);
         factory = new GreenlightFactory(IPayable(payable(address(proxy))), address(scorer), venue);
         scorer.addFactory(block.chainid, address(factory));
     }
@@ -350,6 +350,18 @@ contract GreenlightTest is Test {
         assertTrue(a.isVerified(o, p));
         o.deadline = o.deadline / 10; // a shorter number would otherwise match the start of the real one
         assertFalse(a.isVerified(o, p));
+    }
+
+    function test_aZeroReferencePriceIsRefused() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount.Order memory o = order(a, 1, 1_00);
+        o.refPriceCents = 0;
+        GreenlightAccount.Proof memory none;
+        vm.prank(agent);
+        vm.expectRevert(GreenlightAccount.BadPrice.selector);
+        a.trade(o, none);
+        vm.expectRevert(GreenlightVenue.BadPrice.selector);
+        venue.swap(1, 1e6, 0, 100);
     }
 
     function test_overLimitWaitsForOwner() public {
@@ -613,6 +625,71 @@ contract GreenlightTest is Test {
         settleAt(1_690_00000000);
         assertEq(scorer.queueLength(), 0);
         assertEq(scorer.bookOf(owner).wins, 7);
+    }
+
+
+    // ------------------------------------------------ cost and fairness
+
+    function openAs(address who, Policy memory p) internal returns (GreenlightAccount a) {
+        vm.recordLogs();
+        vm.prank(who);
+        a = factory.createAccount(agent, teeSigner, MODEL, p);
+        venue.faucet(address(a));
+        relay();
+    }
+
+    function test_pricesAreFollowedOnlyWhileTradesWait() public {
+        uint256 topic = uint256(keccak256("AnswerUpdated(int256,uint256,uint256)"));
+        GreenlightAccount a = open(policy());
+        assertFalse(sys.isSubscribed(block.chainid, address(feed), topic), "no trades, no price updates");
+        agentTrade(a, 0, 10_00);
+        relay();
+        assertTrue(scorer.watchingPrice());
+        assertTrue(sys.isSubscribed(block.chainid, address(feed), topic));
+        settleAt(1_700_00000000);
+        assertEq(scorer.queueLength(), 0);
+        assertFalse(scorer.watchingPrice());
+        assertFalse(sys.isSubscribed(block.chainid, address(feed), topic), "stops paying once the queue is empty");
+    }
+
+    function test_aLongWindowDoesNotHoldUpOtherOwners() public {
+        Policy memory slow = policy();
+        slow.scoreWindow = 7 days;
+        GreenlightAccount patient = openAs(makeAddr("patient owner"), slow);
+        GreenlightAccount a = open(policy());
+        agentTrade(patient, 0, 10_00);
+        agentTrade(a, 0, 10_00);
+        agentTrade(a, 0, 10_00);
+        relay();
+        settleAt(1_700_00000000);
+        assertEq(scorer.bookOf(owner).wins, 2, "the quick owner's trades are judged");
+        assertEq(scorer.queueLength(), 1, "only the week-long trade still waits");
+        assertTrue(scorer.watchingPrice());
+    }
+
+    function test_accountsPerOwnerAreCapped() public {
+        for (uint256 i; i < 5; ++i) open(policy());
+        assertEq(scorer.accountsOf(owner).length, 4);
+    }
+
+    function test_operatorCanRecoverUnusedFunds() public {
+        vm.deal(address(scorer), 1 ether);
+        address payable to = payable(makeAddr("treasury"));
+        scorer.withdraw(to, 0.4 ether);
+        assertEq(to.balance, 0.4 ether);
+        vm.prank(owner);
+        vm.expectRevert();
+        scorer.withdraw(to, 0.1 ether);
+    }
+
+    function test_changingTheFeedResetsItsClock() public {
+        GreenlightAccount a = open(policy());
+        agentTrade(a, 0, 10_00);
+        relay();
+        settleAt(1_700_00000000);
+        assertGt(scorer.lastPriceAt(), 0);
+        scorer.setPriceFeed(block.chainid, address(feed));
+        assertEq(scorer.lastPriceAt(), 0);
     }
 
     // ------------------------------------------------ a real NEAR AI Cloud response

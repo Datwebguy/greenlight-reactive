@@ -25,7 +25,7 @@ export function LiveTape({ items }: { items: TapeItem[] }) {
             href={it.href}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2.5 whitespace-nowrap rounded-full border border-line bg-card px-3.5 py-1.5 text-[13px] text-ink-2 backdrop-blur transition hover:border-line-2 hover:text-ink"
+            className="inline-flex items-center gap-2.5 whitespace-nowrap rounded-full border border-line bg-card px-3.5 py-1.5 text-[13px] text-ink-2 transition hover:border-line-2 hover:text-ink"
           >
             <span className={`h-1.5 w-1.5 rounded-full ${dot[it.tone]}`} />
             {it.text}

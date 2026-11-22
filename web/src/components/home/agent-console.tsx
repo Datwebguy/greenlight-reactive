@@ -22,7 +22,7 @@ export interface ConsoleData {
   thought: { action: string; reason: string; signed: boolean; ago: string } | null;
 }
 
-const pill = "inline-flex items-center gap-2 rounded-full border border-line bg-card px-3.5 py-2 text-[13px] font-medium text-ink shadow-card backdrop-blur";
+const pill = "inline-flex items-center gap-2 rounded-full border border-line bg-card px-3.5 py-2 text-[13px] font-medium text-ink shadow-card";
 
 /** The live agent, floating: its earned limit as a ring, its facts as pills around it, and what it last thought. */
 export function AgentConsole({ d }: { d: ConsoleData | null }) {
@@ -32,7 +32,7 @@ export function AgentConsole({ d }: { d: ConsoleData | null }) {
   return (
     <div className="relative mx-auto max-w-[520px] overflow-visible">
       <div className="relative mx-auto grid place-items-center py-4">
-        <div aria-hidden className="absolute h-[min(300px,78vw)] w-[min(300px,78vw)] rounded-full opacity-70 blur-3xl" style={{ background: "var(--glow)" }} />
+        <div aria-hidden className="absolute h-[min(300px,78vw)] w-[min(300px,78vw)] rounded-full " style={{ background: "radial-gradient(closest-side, var(--glow), transparent 75%)" }} />
         {/* orbiting lights */}
         <div aria-hidden className="absolute h-[min(360px,86vw)] w-[min(360px,86vw)] rounded-full border border-line" style={{ animation: "orbit 28s linear infinite" }}>
           <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-go shadow-[0_0_12px_var(--go)]" />

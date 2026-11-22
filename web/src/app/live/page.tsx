@@ -13,7 +13,7 @@ import { agentName } from "@/lib/names";
 import { allAccounts, readOwner, type OwnerView } from "@/lib/server/account";
 import { clientFor } from "@/lib/server/logs";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 20;
 
 async function scorerBusy(): Promise<boolean | null> {
   if (!lasna.scorer) return null;
@@ -62,7 +62,7 @@ export default async function LivePage() {
         </p>
       </Reveal>
 
-      <div className="mt-10 inline-flex items-center gap-2.5 rounded-full border border-line bg-card px-4 py-2 text-[14px] backdrop-blur">
+      <div className="mt-10 inline-flex items-center gap-2.5 rounded-full border border-line bg-card px-4 py-2 text-[14px]">
         <span className={`h-2 w-2 rounded-full ${busy ? "live-dot bg-go" : "bg-mute"}`} />
         {busy === null
           ? "Checking the scorer…"

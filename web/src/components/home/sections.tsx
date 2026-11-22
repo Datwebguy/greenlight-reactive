@@ -105,7 +105,7 @@ export function Faq() {
 export function FinalCta() {
   return (
     <Reveal className="relative text-center">
-      <div aria-hidden className="absolute inset-x-0 top-1/2 mx-auto h-56 w-2/3 -translate-y-1/2 rounded-full opacity-60 blur-3xl" style={{ background: "var(--glow)" }} />
+      <div aria-hidden className="absolute inset-x-0 top-1/2 mx-auto h-56 w-2/3 -translate-y-1/2 rounded-full " style={{ background: "radial-gradient(closest-side, var(--glow), transparent 75%)" }} />
       <h2 className="relative mx-auto max-w-3xl text-[40px] leading-[1.05] font-semibold tracking-tight sm:text-[60px]">
         Give your agent a limit it has to earn.
       </h2>

@@ -138,7 +138,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
       <div className="grid gap-14">
         <div className="flex flex-col items-center gap-10 py-4 sm:flex-row sm:items-center">
           <div className="relative grid place-items-center">
-            <div aria-hidden className="absolute h-[240px] w-[240px] rounded-full opacity-70 blur-3xl" style={{ background: "var(--glow)" }} />
+            <div aria-hidden className="absolute h-[240px] w-[240px] rounded-full " style={{ background: "radial-gradient(closest-side, var(--glow), transparent 75%)" }} />
             <div aria-hidden className="absolute h-[290px] w-[290px] rounded-full border border-line" style={{ animation: "orbit 28s linear infinite" }}>
               <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-go shadow-[0_0_12px_var(--go)]" />
             </div>

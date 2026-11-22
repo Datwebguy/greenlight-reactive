@@ -17,6 +17,9 @@
   --ribbon-a: rgb(34 197 94 / 0.28);
   --ribbon-b: rgb(255 255 255 / 0.85);
   --streak: rgb(22 163 74 / 0.9);
+  --field-a: rgb(74 222 128 / 0.34);
+  --field-b: rgb(255 255 255 / 0.95);
+  --field-c: rgb(134 239 172 / 0.28);
   --card: rgb(255 255 255 / 0.78);
   --card-solid: #ffffff;
   --ink: #0d1512;
@@ -57,6 +60,9 @@
   --ribbon-a: rgb(34 197 94 / 0.22);
   --ribbon-b: rgb(220 252 231 / 0.08);
   --streak: rgb(134 239 172 / 0.95);
+  --field-a: rgb(34 197 94 / 0.34);
+  --field-b: rgb(220 252 231 / 0.16);
+  --field-c: rgb(22 163 74 / 0.3);
   --card: rgb(18 25 23 / 0.72);
   --card-solid: #0f1513;
   --ink: #ecf3ef;
@@ -137,33 +143,12 @@ body {
 /* Glass surface used by cards. */
 .glass {
   background: var(--card);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
 
 
 
-/* Aurora: soft colour bands drifting slowly behind the whole page. */
-.aurora {
-  background-image:
-    repeating-linear-gradient(100deg, var(--mist) 0%, var(--mist) 7%, transparent 10%, transparent 12%, var(--mist) 16%),
-    repeating-linear-gradient(100deg, var(--a1) 10%, var(--a2) 15%, var(--a3) 20%, var(--a4) 25%, var(--a5) 30%);
-  background-size: 300% 200%, 200% 100%;
-  background-position: 50% 50%, 50% 50%;
-  filter: blur(42px) saturate(1.15);
-  animation: aurora 70s linear infinite;
-  opacity: var(--aurora-opacity);
-}
-@keyframes aurora {
-  from {
-    background-position: 50% 50%, 50% 50%;
-  }
-  to {
-    background-position: 350% 50%, 350% 50%;
-  }
-}
 @keyframes flow-dash {
   to {
     stroke-dashoffset: -1320;
@@ -182,6 +167,22 @@ body {
   }
   100% {
     transform: translate3d(6%, 2%, 0);
+  }
+}
+@keyframes drift-a {
+  from {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6%, 4%, 0) scale(1.08);
+  }
+}
+@keyframes drift-b {
+  from {
+    transform: translate3d(4%, 0, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(-6%, 5%, 0) scale(0.97);
   }
 }
 @keyframes orbit {

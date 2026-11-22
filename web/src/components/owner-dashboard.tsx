@@ -287,7 +287,7 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
     <Card>
       <CardHead title="What the agent is thinking" hint="Every decision, including when it chose to wait." />
       {decisions.length === 0 ? (
-        <p className="py-10 text-center text-[14px] text-mute">Press Decide now and the agent's decision and reasoning appear here.</p>
+        <p className="py-10 text-center text-[14px] text-mute">Press Decide now and the agent&apos;s decision and reasoning appear here.</p>
       ) : (
         <ul className="divide-y divide-line">
           {shown.map((d) => (

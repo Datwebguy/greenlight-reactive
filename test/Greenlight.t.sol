@@ -9,7 +9,8 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 import { GreenlightAccount } from "../contracts/GreenlightAccount.sol";
 import { GreenlightFactory } from "../contracts/GreenlightFactory.sol";
 import { GreenlightScorer } from "../contracts/GreenlightScorer.sol";
-import { GreenlightVenue } from "../contracts/GreenlightVenue.sol";
+import { GreenlightVenue, VenueToken } from "../contracts/GreenlightVenue.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Policy, Reason, IGreenlightAccountEvents, IAggregatorV3 } from "../contracts/GreenlightTypes.sol";
 
 // ---------------------------------------------------------------- test stand-ins for Reactive Network
@@ -581,6 +582,148 @@ contract GreenlightTest is Test {
         vm.warp(block.timestamp + 1 days);
         venue.faucet(me);
         assertEq(venue.usd().balanceOf(me), 20_000e6);
+    }
+
+    // ------------------------------------------------ owner paths and guards
+
+    function test_ownerCanRejectARequestOnlyOnce() public {
+        GreenlightAccount a = open(policy());
+        assertFalse(agentTrade(a, 0, 500_00));
+        vm.prank(owner);
+        a.reject(0);
+        vm.prank(owner);
+        vm.expectRevert(GreenlightAccount.UnknownRequest.selector);
+        a.reject(0);
+        vm.prank(owner);
+        vm.expectRevert(GreenlightAccount.UnknownRequest.selector);
+        a.approve(0);
+    }
+
+    function test_ownerCanReplaceTheAgentAndWithdrawAnything() public {
+        GreenlightAccount a = open(policy());
+        address next = makeAddr("next agent");
+        vm.prank(owner);
+        a.setAgent(next);
+        assertEq(a.agent(), next);
+        vm.deal(address(a), 1 ether);
+        address payable home = payable(makeAddr("home"));
+        vm.startPrank(owner);
+        a.withdraw(venue.usd(), home, 100e6);
+        a.withdrawNative(home, 0.4 ether);
+        vm.stopPrank();
+        assertEq(venue.usd().balanceOf(home), 100e6);
+        assertEq(home.balance, 0.4 ether);
+        IERC20 usdToken = IERC20(address(venue.usd()));
+        vm.prank(agent);
+        vm.expectRevert(GreenlightAccount.OnlyOwner.selector);
+        a.withdraw(usdToken, payable(agent), 1);
+    }
+
+    function test_theAgentCannotSendMalformedOrders() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount.Order memory o = order(a, 2, 10_00);
+        GreenlightAccount.Proof memory p;
+        vm.prank(agent);
+        vm.expectRevert(GreenlightAccount.BadSide.selector);
+        a.trade(o, p);
+        o = order(a, 0, 0);
+        vm.prank(agent);
+        vm.expectRevert(GreenlightAccount.ZeroAmount.selector);
+        a.trade(o, p);
+    }
+
+    function test_sellingBackWithNothingHeldDoesNothing() public {
+        GreenlightAccount a = open(policy());
+        vm.prank(owner);
+        assertEq(a.closePosition(), 0);
+    }
+
+    function test_onlyTheVenueMintsAndBurnsItsTokens() public {
+        VenueToken usdToken = venue.usd();
+        assertEq(usdToken.decimals(), 6);
+        vm.expectRevert();
+        usdToken.mint(address(this), 1);
+        vm.expectRevert();
+        usdToken.burn(address(this), 1);
+    }
+
+    function test_theVenueRefusesZeroAndBadPrices() public {
+        vm.expectRevert();
+        venue.swap(0, 0, 1_678e8, 100);
+        vm.expectRevert();
+        venue.swap(0, 1, 1_678e8, 100); // too small to buy any ether
+        feed.set(0);
+        vm.expectRevert();
+        venue.price();
+    }
+
+    function test_factoryListsEachOwnersAccounts() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount b = open(policy());
+        address[] memory mine = factory.accountsOf(owner);
+        assertEq(mine.length, 2);
+        assertEq(mine[0], address(a));
+        assertEq(mine[1], address(b));
+    }
+
+    function test_operatorCanSwapFactoryAndFeedWithoutLosingTrades() public {
+        GreenlightAccount a = open(policy());
+        agentTrade(a, 0, 20_00);
+        relay(); // the scorer now follows the feed
+        assertTrue(scorer.watchingPrice());
+        assertEq(scorer.pendingAt(0).amountCents, 20_00);
+        FeedStandIn next = new FeedStandIn();
+        scorer.setPriceFeed(block.chainid, address(next));
+        assertEq(scorer.priceFeed(), address(next));
+        GreenlightFactory other = new GreenlightFactory(IPayable(payable(address(proxy))), address(scorer), venue);
+        scorer.addFactory(block.chainid, address(other));
+        assertEq(scorer.factoryOf(block.chainid), address(other));
+        assertEq(scorer.queueLength(), 1); // the waiting trade is still there
+    }
+
+    // ------------------------------------------------ properties, checked against many random histories
+
+    /// Whatever the run of wins and losses, the limit stays inside the owner's range.
+    function testFuzz_limitNeverLeavesTheOwnersRange(uint64 pattern) public {
+        Policy memory p = policy();
+        p.freezeAfterLosses = 255; // keep trading through long losing runs
+        GreenlightAccount a = open(p);
+        for (uint256 i; i < 10; i++) {
+            if (a.frozen() || a.remainingToday() < 5_00) break;
+            agentTrade(a, 0, 5_00);
+            relay();
+            bool win = (pattern >> i) & 1 == 1;
+            settleAt(win ? int256(uint256(feed.answer()) * 102 / 100) : int256(uint256(feed.answer()) * 98 / 100));
+            uint64 limit = scorer.bookOf(owner).limitCents;
+            assertGe(limit, p.floorCents);
+            assertLe(limit, p.ceilingCents);
+            assertEq(a.limitCents(), limit); // the account agrees with the scorer
+            vm.warp(block.timestamp + 1 days); // a fresh daily allowance
+            feed.set(feed.answer()); // and a fresh price for the new day
+        }
+    }
+
+    /// The owner's chosen number of losses in a row always freezes the agent, and a frozen agent cannot trade.
+    function testFuzz_aLosingStreakAlwaysFreezes(uint8 streak) public {
+        streak = uint8(bound(streak, 1, 6));
+        Policy memory p = policy();
+        p.freezeAfterLosses = streak;
+        GreenlightAccount a = open(p);
+        for (uint256 i; i < streak; i++) {
+            assertFalse(a.frozen());
+            agentTrade(a, 0, 5_00);
+            relay();
+            settleAt(int256(uint256(feed.answer()) * 97 / 100));
+            vm.warp(block.timestamp + 1 days);
+            feed.set(feed.answer());
+        }
+        assertTrue(a.frozen());
+        assertTrue(scorer.bookOf(owner).frozen);
+        GreenlightAccount.Order memory o = order(a, 0, 5_00);
+        GreenlightAccount.Proof memory pr = signedProof(a, o, teeKey);
+        vm.prank(agent);
+        vm.expectRevert(GreenlightAccount.Frozen.selector);
+        a.trade(o, pr);
     }
 
     // ------------------------------------------------ the scorer refuses odd or repeated events

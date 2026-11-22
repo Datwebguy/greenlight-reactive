@@ -4,13 +4,14 @@ How Greenlight was checked, what each check found, and what changed as a result.
 
 ## 1. Contract tests
 
-57 tests in [`test/Greenlight.t.sol`](../test/Greenlight.t.sol), run on every push by [GitHub Actions](../.github/workflows/test.yml). They cover:
+67 tests in [`test/Greenlight.t.sol`](../test/Greenlight.t.sol), run on every push by [GitHub Actions](../.github/workflows/test.yml), covering 98% of the contract code. They cover:
 
 - signed decisions: a real response signed inside NEAR AI Cloud's enclave verifies on-chain, while an edited response, another signer, an order found only in the model's reasoning, an order quoted inside other text, or a decision made for a different account does not
 - limits: trades over today's limit wait for the owner, the daily limit resets, and the limit never leaves the owner's range
 - scoring: winning streaks raise the limit, losses cut it, a losing streak or a large total loss freezes the agent, sales win when the price falls, and flat trades count as neither
 - delivery: repeated events and callbacks change nothing, late updates and old rules are ignored, and a lost update is recovered by a resync
 - the owner: pausing reaches every account, restarting starts from the lowest limit, rules changes reach the scorer, and closing an account sells back to dollars and returns every balance
+- properties: across hundreds of random histories of wins and losses, the limit never leaves the owner's range, the account always agrees with the scorer, and the chosen losing streak always freezes the agent
 - abuse: unknown contracts, absurd limits, bad prices, unknown sides, expired orders and repeated nonces are all refused
 
 ## 2. Break testing

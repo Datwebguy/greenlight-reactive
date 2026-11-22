@@ -7,6 +7,7 @@
 **An AI that trades for you, on a limit it has to earn.**
 
 [![Live app](https://img.shields.io/badge/Live_app-greenlight--earned.vercel.app-138a4a?style=for-the-badge)](https://greenlight-earned.vercel.app)
+[![Live agent](https://img.shields.io/endpoint?url=https%3A%2F%2Fgreenlight-earned.vercel.app%2Fapi%2Fbadge&style=for-the-badge)](https://greenlight-earned.vercel.app/live)
 
 [![Tests](https://github.com/Datwebguy/greenlight-reactive/actions/workflows/test.yml/badge.svg)](https://github.com/Datwebguy/greenlight-reactive/actions/workflows/test.yml)
 ![Reactive Network](https://img.shields.io/badge/Reactive_Network-Lasna-138a4a?style=flat-square)
@@ -216,7 +217,7 @@ Across 30 measured owner actions, an update reached Base in a median of **1.9 se
 
 ## Quality and testing
 
-The contract suite contains 57 tests and runs on every push. Among them is a test that verifies a real response signed inside NEAR AI Cloud's enclave within the account contract, alongside tests showing that repeated events, late updates, old rules and old price rounds change nothing.
+The contract suite contains 67 tests and runs on every push, covering 98% of the contract code. Among them is a test that verifies a real response signed inside NEAR AI Cloud's enclave within the account contract, alongside tests showing that repeated events, late updates, old rules and old price rounds change nothing. Property tests replay hundreds of random histories of wins and losses and confirm that the limit never leaves the owner's range and that the owner's chosen losing streak always freezes the agent.
 
 To confirm the tests guard what matters, every safety check in the account, venue and scorer was removed one at a time and the suite was run against each broken version. All 47 deliberate faults were caught. The contracts, agent service and app were also reviewed by an independent model through NEAR AI Cloud, and every confirmed finding was fixed and covered by a test. Finally, the full user journey, from an empty wallet to opening, managing and closing an account, was exercised in a real browser with real wallets on testnet.
 

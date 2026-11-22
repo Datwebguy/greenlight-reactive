@@ -56,9 +56,10 @@ No faucet, no setup. All you need is a browser wallet such as MetaMask, Rabby or
 
 **No wallet? Verify it in 60 seconds:**
 
-1. Open the [live agent](https://greenlight-earned.vercel.app/live). It trades every 5 minutes; its earned limit, record and latest reasoning are on the page.
-2. Follow one full loop: an AI trade on [Base](https://sepolia.basescan.org/tx/0x3152ce71b24bb49824de7419b04b5fb60c8ab67b720e4ebd345cf9c62a06c32b) → judged by the scorer on [Reactive Lasna](https://lasna.reactscan.net/tx/0x819ed0aec3afacca07f450e2a8d1604f0edbd727541ebaa06bf0f4808d5b0047) → the new limit applied on [Base](https://sepolia.basescan.org/tx/0xc0803adb2a665c68e9fbac8a7d6ecf82996f433eb3dd7b5ace96035e5b282245) and [Unichain](https://sepolia.uniscan.xyz/tx/0xe5fdd9569d32b1b4f8d79d674488b58bf875c82e02d9b6813bae1337961730aa) within 3 seconds.
-3. Browse [every transaction so far](deployments/EVIDENCE.md), or rebuild it yourself with `npm run replay`.
+1. On the [home page](https://greenlight-earned.vercel.app), press **Pause it everywhere**. A real agent is paused on Base and you watch the scorer on Reactive Network carry the pause to Base and Unichain in seconds, with every transaction linked. It restarts on its own.
+2. Open the [live agent](https://greenlight-earned.vercel.app/live). It trades every 5 minutes; its earned limit, record and latest reasoning are on the page.
+3. Follow one full loop: an AI trade on [Base](https://sepolia.basescan.org/tx/0x3152ce71b24bb49824de7419b04b5fb60c8ab67b720e4ebd345cf9c62a06c32b) → judged by the scorer on [Reactive Lasna](https://lasna.reactscan.net/tx/0x819ed0aec3afacca07f450e2a8d1604f0edbd727541ebaa06bf0f4808d5b0047) → the new limit applied on [Base](https://sepolia.basescan.org/tx/0xc0803adb2a665c68e9fbac8a7d6ecf82996f433eb3dd7b5ace96035e5b282245) and [Unichain](https://sepolia.uniscan.xyz/tx/0xe5fdd9569d32b1b4f8d79d674488b58bf875c82e02d9b6813bae1337961730aa) within 3 seconds.
+4. Browse [every transaction so far](deployments/EVIDENCE.md), or rebuild it yourself with `npm run replay`.
 
 ## Why Greenlight
 

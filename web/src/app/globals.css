@@ -119,6 +119,9 @@ html,
 body {
   background: var(--paper);
   color: var(--ink);
+  /* Nothing may push the page wider than the screen. */
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 body {

@@ -12,6 +12,7 @@ export function Gauge({
   ceilingCents,
   frozen = false,
   size = 220,
+  responsive = false,
   children,
 }: {
   limitCents: number;
@@ -19,6 +20,8 @@ export function Gauge({
   ceilingCents: number;
   frozen?: boolean;
   size?: number;
+  /** Shrink to fit narrow screens. */
+  responsive?: boolean;
   children?: React.ReactNode;
 }) {
   const r = 42;
@@ -29,7 +32,7 @@ export function Gauge({
   const fx = 50 + r * Math.cos((floorAngle * Math.PI) / 180);
   const fy = 50 + r * Math.sin((floorAngle * Math.PI) / 180);
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative" style={responsive ? { width: `min(${size}px, 72vw)`, height: `min(${size}px, 72vw)` } : { width: size, height: size }}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-0">
         <defs>
         </defs>

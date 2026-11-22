@@ -32,16 +32,16 @@ export function AgentConsole({ d }: { d: ConsoleData | null }) {
   return (
     <div className="relative mx-auto max-w-[520px] overflow-visible">
       <div className="relative mx-auto grid place-items-center py-4">
-        <div aria-hidden className="absolute h-[300px] w-[300px] rounded-full opacity-70 blur-3xl" style={{ background: "var(--glow)" }} />
+        <div aria-hidden className="absolute h-[min(300px,78vw)] w-[min(300px,78vw)] rounded-full opacity-70 blur-3xl" style={{ background: "var(--glow)" }} />
         {/* orbiting lights */}
-        <div aria-hidden className="absolute h-[360px] w-[360px] rounded-full border border-line" style={{ animation: "orbit 28s linear infinite" }}>
+        <div aria-hidden className="absolute h-[min(360px,86vw)] w-[min(360px,86vw)] rounded-full border border-line" style={{ animation: "orbit 28s linear infinite" }}>
           <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-go shadow-[0_0_12px_var(--go)]" />
           <span className="absolute bottom-[14%] left-[6%] h-1.5 w-1.5 rounded-full bg-go/60" />
         </div>
-        <div aria-hidden className="absolute h-[420px] w-[420px] rounded-full border border-dashed border-line" style={{ animation: "orbit 46s linear infinite reverse" }}>
+        <div aria-hidden className="absolute h-[min(420px,94vw)] w-[min(420px,94vw)] rounded-full border border-dashed border-line" style={{ animation: "orbit 46s linear infinite reverse" }}>
           <span className="absolute top-1/2 -right-1 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-go shadow-[0_0_16px_var(--go)]" />
         </div>
-        <Gauge limitCents={d.limitCents} floorCents={d.floorCents} ceilingCents={d.ceilingCents} frozen={d.frozen} size={300}>
+        <Gauge limitCents={d.limitCents} floorCents={d.floorCents} ceilingCents={d.ceilingCents} frozen={d.frozen} size={300} responsive>
           <div>
             <div className="text-[12px] font-medium text-mute">{d.name} has earned</div>
             <Ticker value={d.limitCents / 100} format={(n) => `$${n.toFixed(2)}`} className="num block text-[46px] leading-tight font-semibold tracking-tight" />
@@ -53,10 +53,10 @@ export function AgentConsole({ d }: { d: ConsoleData | null }) {
           <span className={`h-2 w-2 rounded-full ${d.frozen ? "bg-stop" : "live-dot bg-go"}`} />
           {d.frozen ? "Frozen" : "Trading live"}
         </motion.span>
-        <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.75 }} className={`${pill} absolute top-1/3 -left-2 sm:-left-6`}>
+        <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.75 }} className={`${pill} absolute top-1/3 left-0 sm:-left-6`}>
           <span className="num">{d.wins} won · {d.losses} lost</span>
         </motion.span>
-        <motion.span initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.9 }} className={`${pill} absolute top-1/2 -right-2 sm:-right-6`}>
+        <motion.span initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.9 }} className={`${pill} absolute top-1/2 right-0 sm:-right-6`}>
           <EthLogo size={16} />
           <span className="num">{d.price ? `$${d.price.toFixed(2)}` : "ETH"}</span>
         </motion.span>

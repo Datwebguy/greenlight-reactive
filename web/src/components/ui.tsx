@@ -84,13 +84,13 @@ export function ButtonLink({
   );
 }
 
-export function Logo() {
+export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2 font-semibold tracking-tight text-ink">
-      <span className="grid h-7 w-7 place-items-center rounded-full bg-go">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go">
         <span className="h-2.5 w-2.5 rounded-full bg-white dark:bg-[#052e16]" />
       </span>
-      Greenlight
+      <span className={compact ? "hidden sm:inline" : ""}>Greenlight</span>
     </span>
   );
 }

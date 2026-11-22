@@ -6,21 +6,21 @@ import { Logo } from "./ui";
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30">
-      <div className="mx-3 mt-3 flex h-14 max-w-6xl items-center justify-between gap-3 rounded-full border border-line bg-card px-3 pl-4 shadow-card backdrop-blur-xl sm:mx-auto sm:px-3 sm:pl-5">
+      <div className="mx-3 mt-3 flex h-14 max-w-6xl items-center justify-between gap-2 rounded-full border border-line bg-card px-3 pl-4 shadow-card backdrop-blur-xl sm:mx-auto sm:px-3 sm:pl-5">
         <Link href="/" aria-label="Greenlight home">
-          <Logo />
+          <Logo compact />
         </Link>
-        <nav className="flex items-center gap-0.5 text-[14px] sm:gap-1">
+        <nav className="flex items-center gap-0 text-[13px] sm:gap-1 sm:text-[14px]">
           <Link href="/#how" className="hidden rounded-lg px-3 py-2 text-ink-2 transition hover:text-ink md:inline">
             How it works
           </Link>
-          <Link href="/live" className="rounded-lg px-2.5 py-2 text-ink-2 transition hover:text-ink sm:px-3">
+          <Link href="/live" className="rounded-lg px-2 py-2 text-ink-2 transition hover:text-ink sm:px-3">
             Live
           </Link>
-          <Link href="/app" className="rounded-lg px-2.5 py-2 text-ink-2 transition hover:text-ink sm:px-3">
+          <Link href="/app" className="rounded-lg px-2 py-2 text-ink-2 transition hover:text-ink sm:px-3">
             Account
           </Link>
-          <span className="ml-1 flex items-center gap-2">
+          <span className="ml-1 flex items-center gap-1.5 sm:gap-2">
             <ThemeToggle />
             <ConnectButton />
           </span>

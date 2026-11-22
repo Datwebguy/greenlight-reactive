@@ -51,7 +51,7 @@ export function Hero({ agentHref, children }: { agentHref: string; children: Rea
           </Link>
           <Link
             href={agentHref}
-            className="inline-flex items-center gap-2 rounded-full px-5 py-3.5 text-[15px] font-semibold text-ink transition hover:text-go-deep"
+            className="inline-flex items-center gap-2 rounded-full px-2 py-3.5 text-[15px] font-semibold text-ink transition hover:text-go-deep sm:px-5"
           >
             Watch the live agent <ArrowRight size={16} />
           </Link>

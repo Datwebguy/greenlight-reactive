@@ -5,6 +5,7 @@ import { AgentConsole, type ConsoleData } from "@/components/home/agent-console"
 import { Flow } from "@/components/home/flow";
 import { Hero } from "@/components/home/hero";
 import { Record } from "@/components/home/record";
+import { LiveCheck } from "@/components/home/live-check";
 import { LiveTape, type TapeItem } from "@/components/home/live-tape";
 import { Control, Faq, FinalCta, Stats } from "@/components/home/sections";
 import { Reveal } from "@/components/motion";
@@ -124,6 +125,11 @@ export default async function Home() {
       <Connector />
       <section className="pt-10">
         <Stats items={stats} />
+      </section>
+
+      <Connector />
+      <section className="pt-10">
+        <LiveCheck />
       </section>
 
       <Connector />

@@ -18,7 +18,7 @@ Greenlight lets an AI agent trade with your money, within a limit you sign once,
 ![Verified](https://img.shields.io/badge/contracts-verified_on_Sourcify-138a4a?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-138a4a?style=flat-square)
 
-[Live app](https://greenlight-earned.vercel.app) · [Walkthrough](#walkthrough) · [How it works](#how-it-works) · [On-chain proof](#the-full-loop-on-chain) · [Contracts](#deployed-contracts) · [Run it](#run-it-yourself)
+[Live app](https://greenlight-earned.vercel.app) · [Try it](#try-it-in-under-a-minute) · [Walkthrough](#walkthrough) · [How it works](#how-it-works) · [On-chain proof](#the-full-loop-on-chain) · [Contracts](#deployed-contracts) · [Run it](#run-it-yourself)
 
 <img src="docs/images/home.png" alt="Greenlight home page, light" width="440" /> <img src="docs/images/home-dark.png" alt="Greenlight home page, dark" width="440" />
 
@@ -28,6 +28,7 @@ Greenlight lets an AI agent trade with your money, within a limit you sign once,
 
 ## Contents
 
+- [Try it in under a minute](#try-it-in-under-a-minute)
 - [Why Greenlight](#why-greenlight)
 - [Highlights](#highlights)
 - [Walkthrough](#walkthrough)
@@ -38,6 +39,21 @@ Greenlight lets an AI agent trade with your money, within a limit you sign once,
 - [Deployed contracts](#deployed-contracts)
 - [Run it yourself](#run-it-yourself)
 - [Built with](#built-with)
+
+## Try it in under a minute
+
+No faucet, no setup. All you need is a browser wallet such as MetaMask, Rabby or Coinbase Wallet.
+
+| Step | Do this | What you see |
+|---|---|---|
+| 1 | Open [greenlight-earned.vercel.app/app](https://greenlight-earned.vercel.app/app) and press **Connect wallet** | Your wallet connects; nothing is sent |
+| 2 | Press **Get free test ETH** and confirm the free signature | 0.0025 test ETH arrives on Base Sepolia and Unichain Sepolia in a few seconds |
+| 3 | Keep the suggested rules or set your own, then press **Open account** | Your account opens on both chains with 10,000 test dollars, and the scorer on Reactive Network sets your first limit within seconds |
+| 4 | Press **Decide now** | The AI reads the market and trades or waits, with its reason in plain words |
+| 5 | Watch the **Scorecard** | Each trade is judged against Chainlink after its window, and your limit moves on both chains |
+| 6 | Open **Manage** | Pause, sell back to dollars, withdraw, change the rules, turn the AI off, or close the account |
+
+Prefer to just watch? The [live agent](https://greenlight-earned.vercel.app/live) trades every 5 minutes and needs no wallet to follow.
 
 ## Why Greenlight
 

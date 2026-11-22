@@ -58,6 +58,7 @@ People trust a new hire with a little responsibility first, then give them more 
 | ⚡ **One switch, every chain** | A freeze on Base reaches Unichain in seconds, carried by a Reactive contract. |
 | 🛡️ **Runs on its own** | Judging, raising, cutting and freezing all happen in a contract on Reactive Network, triggered by the market itself. The website and the AI are optional for your protection. |
 | 🎛️ **You stay in charge** | Pause, sell back to dollars, withdraw, change the rules, turn the AI off or close the account in one step, at any time. |
+| ⏱️ **Decide now** | Owners can ask the agent for its next move at any time and see the decision and its reason within seconds. |
 | 💬 **Plain-language reasoning** | Every decision, including each time the agent chose to wait, comes with its reason in plain words, stored inside the trade itself. |
 
 ## Walkthrough
@@ -87,7 +88,7 @@ Within seconds the scorer on Reactive Network links your account and sends its f
 
 ### 4. Let it trade
 
-The hosted agent decides every 10 minutes. Signed decisions that fit today's limit run at once. Anything larger, or anything the enclave did not sign, appears under **Waiting for the owner** for your yes or no.
+The hosted agent decides every 5 minutes, and the owner can press **Decide now** to get its next move straight away, with its reason. Signed decisions that fit today's limit run at once. Anything larger, or anything the enclave did not sign, appears under **Waiting for the owner** for your yes or no.
 
 ### 5. Manage it at any time
 
@@ -253,7 +254,7 @@ cd web && npm install && npm run dev         # the app, reading the deployed con
 
 **Deploy your own copy.** Put `DEPLOYER_PRIVATE_KEY` in an env file outside the repo, fund it with Base Sepolia ETH and Lasna REACT, then run `node --env-file=<file> scripts/deploy.ts`. The script records every address in `deployments/testnet.json`, and the app picks them up.
 
-**Run the agent service.** Set `AGENT_PRIVATE_KEY`, `NEAR_AI_API_KEY`, `OPENAI_API_KEY` and `CRON_SECRET` in the app's environment. `/api/agent/tick` runs one round of decisions and is called every 10 minutes.
+**Run the agent service.** Set `AGENT_PRIVATE_KEY`, `NEAR_AI_API_KEY`, `OPENAI_API_KEY` and `CRON_SECRET` in the app's environment. `/api/agent/tick` runs one round of decisions and is called every 5 minutes. `/api/agent/decide` answers an owner's **Decide now**, proven by a free wallet signature.
 
 ## Built with
 

@@ -3,12 +3,14 @@ import { createWalletClient, decodeEventLog, http, type Address, type Hex } from
 import { privateKeyToAccount } from "viem/accounts";
 import { greenlightAccountAbi, greenlightVenueAbi } from "../abi";
 import { chainById, tradingChains } from "../config";
-import { allAccounts, readAccount, readBook, type AccountView, type BookView } from "./account";
+import { accountsOf, allAccounts, readAccount, readBook, type AccountView, type BookView } from "./account";
 import { lastDecisionAt, recordDecision } from "./db";
 import { clientFor } from "./logs";
 import { askNear, askOpenAI, nearSignature, sha256Hex, type Decision } from "./models";
 
-const MIN_INTERVAL_S = Number(process.env.AGENT_MIN_INTERVAL_MINUTES ?? "10") * 60;
+const MIN_INTERVAL_S = Number(process.env.AGENT_MIN_INTERVAL_MINUTES ?? "5") * 60;
+/** How soon an owner may ask for another decision on demand. */
+const ON_DEMAND_GAP_S = 60;
 const ORDER_TTL_S = Number(process.env.AGENT_ORDER_TTL_MINUTES ?? "10") * 60;
 const MIN_GAS_WEI = BigInt(process.env.AGENT_MIN_GAS_WEI ?? "200000000000000"); // 0.0002 ETH
 
@@ -81,8 +83,9 @@ export function buildPrompt(opts: {
     `If ${account.policy.raiseAfterWins} trades in a row go your way your limit grows; every losing trade shrinks it,`,
     `and ${account.policy.freezeAfterLosses} losses in a row freeze you until the owner steps in.`,
     "Winning trades are the only way to earn a higher limit, so sitting out every round earns you nothing;",
-    "but a losing trade costs you, so trade only when the recent prices give you a reason to expect a move",
-    "within the judging window, and prefer the smallest size when you are unsure. Reply with JSON only.",
+    "and a losing trade costs you only a step. So when the last few prices lean one way, act on it with the smallest",
+    "size; use a larger size only when the move is clear. Hold only when the prices are flat or point both ways.",
+    "Reply with JSON only.",
   ].join(" ");
   const user = [
     `Recent ETH/USD prices from Chainlink (UTC, USD): ${history.map((h) => `${clock(h.time)} ${h.price.toFixed(2)}`).join(", ")}.`,
@@ -181,6 +184,31 @@ export async function runAgent(budgetMs = 240_000): Promise<TickResult[]> {
 function orderParts(text: string) {
   const p = text.split(":");
   return { side: p.at(-5), amount: p.at(-4)!, ref: p.at(-3)! };
+}
+
+/** A decision right now for every account of `owner` that uses the hosted agent, at the owner's request. */
+export async function decideNow(owner: Address): Promise<TickResult[]> {
+  const me = agentAccount();
+  if (!me) return [];
+  const history = await priceHistory();
+  const views = await Promise.all((await accountsOf(owner)).map((a) => readAccount(a.chainId, a.address).catch(() => null)));
+  return Promise.all(
+    views
+      .filter((v): v is AccountView => Boolean(v && v.owner.toLowerCase() === owner.toLowerCase()))
+      .filter((v) => v.agent.toLowerCase() === me.address.toLowerCase())
+      .map(async (v): Promise<TickResult> => {
+        const base = { chainId: v.chainId, account: v.address };
+        if (v.frozen) return { ...base, outcome: "frozen" };
+        if (v.remainingCents < 100) return { ...base, outcome: "daily limit used" };
+        const last = await lastDecisionAt(v.chainId, v.address);
+        if (last && Date.now() / 1000 - last < ON_DEMAND_GAP_S) return { ...base, outcome: "decided a moment ago" };
+        try {
+          return await decideAndTrade(v, history);
+        } catch (e) {
+          return { ...base, outcome: `error: ${(e as Error).message.slice(0, 160)}` };
+        }
+      }),
+  );
 }
 
 /** The answer is one of the offered orders, and its action agrees with the order's side. */

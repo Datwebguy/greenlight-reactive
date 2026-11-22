@@ -27,7 +27,7 @@ const pill = "inline-flex items-center gap-2 rounded-full border border-line bg-
 /** The live agent, floating: its earned limit as a ring, its facts as pills around it, and what it last thought. */
 export function AgentConsole({ d }: { d: ConsoleData | null }) {
   if (!d) {
-    return <p className="text-center text-[15px] text-ink-2">The live agent is starting up. Its first decision comes within ten minutes.</p>;
+    return <p className="text-center text-[15px] text-ink-2">The live agent is starting up. Its first decision comes within five minutes.</p>;
   }
   return (
     <div className="relative mx-auto max-w-[520px] overflow-visible">
@@ -87,7 +87,7 @@ export function AgentConsole({ d }: { d: ConsoleData | null }) {
             </figcaption>
           </>
         ) : (
-          <p className="text-center text-[14px] text-ink-2">It decides every ten minutes. Its next thought appears here.</p>
+          <p className="text-center text-[14px] text-ink-2">It decides every five minutes. Its next thought appears here.</p>
         )}
       </motion.figure>
     </div>

@@ -13,6 +13,7 @@ import type { AccountView, OwnerView, TimelineItem } from "@/lib/server/account"
 import type { DecisionRow } from "@/lib/server/db";
 import { ChainChip, chainLabel } from "./chain-chip";
 import { LimitChart } from "./limit-chart";
+import { DecideNow } from "./decide-now";
 import { Manage } from "./manage";
 import { Gauge } from "./gauge";
 import { Scorecard } from "./scorecard";
@@ -178,6 +179,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
             <Fact label="Can move between" value={`${dollars(policy.floorCents)} and ${dollars(policy.ceilingCents)}`} sub={`Started at ${dollars(policy.startLimitCents)}`} />
           </dl>
         </div>
+        {isOwner && <DecideNow owner={owner} />}
         <Approvals accounts={data.accounts} isOwner={isOwner} act={act} busy={busy} />
       </div>
 
@@ -285,7 +287,7 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
     <Card>
       <CardHead title="What the agent is thinking" hint="Every decision, including when it chose to wait." />
       {decisions.length === 0 ? (
-        <p className="py-10 text-center text-[14px] text-mute">The agent decides every 10 minutes. Its reasoning appears here.</p>
+        <p className="py-10 text-center text-[14px] text-mute">The agent decides every five minutes, or whenever its owner asks. Its reasoning appears here.</p>
       ) : (
         <ul className="divide-y divide-line">
           {shown.map((d) => (

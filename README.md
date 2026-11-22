@@ -92,6 +92,8 @@ npm test
 | GreenlightVenue | Base Sepolia (84532) | [`0x02813ffb18bc3f994836d3dfc3c223108be17dda`](https://sepolia.basescan.org/address/0x02813ffb18bc3f994836d3dfc3c223108be17dda) |
 | Demo account | Base Sepolia (84532) | [`0xAE131b8874B27a49a6Cf2857f7108B8467241a18`](https://sepolia.basescan.org/address/0xAE131b8874B27a49a6Cf2857f7108B8467241a18) |
 
+The source of every contract above is verified on Sourcify, so anyone can compare it with what is running: [scorer](https://sourcify.dev/server/repo-ui/5318007/0x02813ffb18bc3f994836d3dfc3c223108be17dda), [factory](https://sourcify.dev/server/repo-ui/84532/0xf0b6692c893f9ea0a93c1581f3756e3521c701d6), [venue](https://sourcify.dev/server/repo-ui/84532/0x02813ffb18bc3f994836d3dfc3c223108be17dda), [demo account](https://sourcify.dev/server/repo-ui/84532/0xAE131b8874B27a49a6Cf2857f7108B8467241a18).
+
 Addresses and deployment transactions are also in [`deployments/testnet.json`](deployments/testnet.json). Prices come from the Chainlink ETH/USD feed on Base Sepolia (aggregator `0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3`).
 
 ## Running it yourself

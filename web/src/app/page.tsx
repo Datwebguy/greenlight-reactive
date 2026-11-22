@@ -4,6 +4,7 @@ import { Connector } from "@/components/home/connector";
 import { AgentConsole, type ConsoleData } from "@/components/home/agent-console";
 import { Flow } from "@/components/home/flow";
 import { Hero } from "@/components/home/hero";
+import { Record } from "@/components/home/record";
 import { LiveTape, type TapeItem } from "@/components/home/live-tape";
 import { Control, Faq, FinalCta, Stats } from "@/components/home/sections";
 import { Reveal } from "@/components/motion";
@@ -82,6 +83,8 @@ export default async function Home() {
     })
     .filter((x): x is TapeItem => x !== null);
 
+  const scored = (view?.timeline ?? []).filter((t): t is Extract<TimelineItem, { kind: "scored" }> => t.kind === "scored");
+
   const allStats = [
     {
       label: "Change to every chain",
@@ -147,6 +150,16 @@ export default async function Home() {
           </section>
         </>
       )}
+
+      <Connector />
+      <section className="pt-10">
+        <Record
+          href={href}
+          judged={scored.length}
+          won={scored.filter((t) => verdict(t) === "a win").length}
+          resultCents={scored.reduce((a, t) => a + t.pnlCents, 0)}
+        />
+      </section>
 
       <section className="pt-28">
         <Control />

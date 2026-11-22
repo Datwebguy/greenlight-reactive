@@ -14,6 +14,7 @@ import type { DecisionRow } from "@/lib/server/db";
 import { ChainChip, chainLabel } from "./chain-chip";
 import { LimitChart } from "./limit-chart";
 import { Gauge } from "./gauge";
+import { Scorecard } from "./scorecard";
 import { Ticker } from "./motion";
 import { Button, Card, CardHead } from "./ui";
 
@@ -172,6 +173,10 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
           </dl>
         </div>
         <Approvals accounts={data.accounts} isOwner={isOwner} act={act} busy={busy} />
+      </div>
+
+      <div id="scorecard" className="scroll-mt-28">
+        <Scorecard items={data.timeline} />
       </div>
 
       {/* thinking + chart */}

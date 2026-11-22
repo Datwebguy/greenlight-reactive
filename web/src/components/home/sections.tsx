@@ -64,6 +64,7 @@ const faq = [
   { q: "What does the AI actually decide?", a: "Whether to buy, sell or wait, and how much, within what is left of today's limit. It explains every decision in plain words, including the times it chose to wait." },
   { q: "How does it earn a higher limit?", a: "By being right. After a run of winning trades the limit rises by the step you chose, never above your highest. Each losing trade cuts it, never below your lowest." },
   { q: "What if the AI is unavailable or keeps losing?", a: "If the secure model is unavailable, a backup can still suggest trades, but those always wait for your approval. If the agent keeps losing, it freezes itself on every chain." },
+  { q: "What happens if the AI goes offline?", a: "Nothing bad. The AI only proposes trades. Judging them, moving the limit and freezing the agent run as a contract on Reactive Network, so they keep working without the AI or this website." },
   { q: "Who can move my funds?", a: "Only you. The agent can place trades inside its limit and nothing else: it cannot withdraw, change your rules, approve its own requests or unfreeze itself." },
 ];
 

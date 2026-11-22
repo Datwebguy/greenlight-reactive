@@ -72,7 +72,7 @@ export function DecideNow({ owner }: { owner: Address }) {
           <div>
             <div className="text-[17px] font-semibold tracking-tight">Ask the agent now</div>
             <p className="mt-0.5 max-w-xl text-[14px] text-ink-2">
-              It decides on its own every few minutes. Ask now to see its next move straight away, with its reason.
+              Ask it to read the market now and see its next move straight away, with its reason.
             </p>
           </div>
         </div>

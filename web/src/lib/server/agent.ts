@@ -8,7 +8,12 @@ import { lastDecisionAt, recordDecision } from "./db";
 import { clientFor } from "./logs";
 import { askNear, askOpenAI, nearSignature, sha256Hex, type Decision } from "./models";
 
-const MIN_INTERVAL_S = Number(process.env.AGENT_MIN_INTERVAL_MINUTES ?? "5") * 60;
+const MIN_INTERVAL_S = Number(process.env.AGENT_MIN_INTERVAL_MINUTES ?? "10") * 60;
+/** Owners whose agents decide on the schedule. Everyone else decides whenever they press Decide now. */
+const SCHEDULED_OWNERS = (process.env.AGENT_SCHEDULED_OWNERS ?? process.env.NEXT_PUBLIC_DEMO_OWNER ?? "")
+  .split(",")
+  .map((x) => x.trim().toLowerCase())
+  .filter(Boolean);
 /** How soon an owner may ask for another decision on demand. */
 const ON_DEMAND_GAP_S = 60;
 const ORDER_TTL_S = Number(process.env.AGENT_ORDER_TTL_MINUTES ?? "10") * 60;
@@ -127,7 +132,9 @@ export async function runAgent(budgetMs = 240_000): Promise<TickResult[]> {
   // Work out which accounts to decide for, then decide: chains in parallel, one account at a time per chain so the
   // agent's own transactions never race each other.
   const due: AccountView[] = [];
+  const everyone = process.env.AGENT_SCHEDULE_EVERYONE === "true";
   for (const a of await allAccounts()) {
+    if (!everyone && !SCHEDULED_OWNERS.includes(a.owner.toLowerCase())) continue;
     let view: AccountView;
     try {
       view = await readAccount(a.chainId, a.address);

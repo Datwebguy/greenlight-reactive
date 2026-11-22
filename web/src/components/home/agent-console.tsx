@@ -87,7 +87,7 @@ export function AgentConsole({ d }: { d: ConsoleData | null }) {
             </figcaption>
           </>
         ) : (
-          <p className="text-center text-[14px] text-ink-2">It decides every five minutes. Its next thought appears here.</p>
+          <p className="text-center text-[14px] text-ink-2">It decides every ten minutes. Its next thought appears here.</p>
         )}
       </motion.figure>
     </div>

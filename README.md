@@ -2,7 +2,7 @@
 
 **Greenlight lets an AI agent trade with your money, within a limit you sign once, and automatically raises, lowers or freezes that limit based on how the agent's trades actually turn out.**
 
-Live app: **https://greenlight-algo-dao-30577dec.vercel.app**
+Live app: **https://greenlight-earned.vercel.app**
 
 An AI that can trade for you is only useful if you can trust it with a little room, and give it more once it has proved itself. Greenlight makes that room explicit and earned:
 
@@ -17,7 +17,7 @@ The scoring runs entirely on Reactive Network. It needs no server and keeps work
 
 **See it work without a wallet**
 
-1. Open the [live app](https://greenlight-algo-dao-30577dec.vercel.app). The card on the right is the demo agent right now: its earned limit, its record and its latest decision in plain words.
+1. Open the [live app](https://greenlight-earned.vercel.app). The card on the right is the demo agent right now: its earned limit, its record and its latest decision in plain words.
 2. Press **See the demo agent**. You get the full dashboard: the limit on its track between lowest and highest, what is waiting for the owner, what the agent is thinking, the limit over time, every event with a link to its transaction, and how many seconds each change took to reach each chain.
 3. Under **Proof, not promises** on the home page, open any **Proof** link to see the transaction on the block explorer.
 

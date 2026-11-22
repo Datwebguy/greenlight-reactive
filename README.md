@@ -65,7 +65,7 @@ People trust a new hire with a little responsibility first, then give them more 
 
 ### 1. Watch the live agent
 
-Open the [live app](https://greenlight-earned.vercel.app) and press **Watch the live agent**. Its page shows the earned limit on its track between lowest and highest, today's remaining room, its record, and the result so far.
+Open the [live app](https://greenlight-earned.vercel.app) and press **Watch the live agent**. Its page shows the earned limit on its track between lowest and highest, today's remaining room, its record, and the result so far. The **Live** page lists every agent; two run now, each with its own owner and its own rules.
 
 <p align="center">
   <img src="docs/images/agent.png" alt="The live agent's page" width="680" />
@@ -93,6 +93,8 @@ Within seconds the scorer on Reactive Network links your account and sends its f
 ### 4. Let it trade
 
 The hosted agent decides every 5 minutes, and the owner can press **Decide now** to get its next move straight away, with its reason. Signed decisions that fit today's limit run at once. Anything larger, or anything the enclave did not sign, appears under **Waiting for the owner** for your yes or no.
+
+<img src="docs/images/decide-now.png" alt="Decide now, with the agent's answer and reason" width="900" />
 
 ### 5. Manage it at any time
 

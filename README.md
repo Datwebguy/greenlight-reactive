@@ -14,7 +14,7 @@ Greenlight lets an AI agent trade with your money, within a limit you sign once,
 ![NEAR AI](https://img.shields.io/badge/NEAR_AI_Cloud-TEE_signed-138a4a?style=flat-square)
 ![Chainlink](https://img.shields.io/badge/Chainlink-ETH%2FUSD-138a4a?style=flat-square)
 ![Chains](https://img.shields.io/badge/Base_%C2%B7_Unichain-Sepolia-138a4a?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-57_passing-138a4a?style=flat-square)
+[![Tests](https://github.com/Datwebguy/greenlight-reactive/actions/workflows/test.yml/badge.svg)](https://github.com/Datwebguy/greenlight-reactive/actions/workflows/test.yml)
 ![Verified](https://img.shields.io/badge/contracts-verified_on_Sourcify-138a4a?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-138a4a?style=flat-square)
 

@@ -56,6 +56,8 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
     event SyncIgnored(uint64 indexed seq, uint64 appliedSeq);
     event AgentChanged(address agent);
     event SignerChanged(address signer, string modelId);
+    event PositionClosed(uint256 ethSold, uint256 usdReceived, uint256 price);
+    event AccountClosed(address to, uint256 usd, uint256 eth, uint256 gas);
 
     address public immutable owner;
     GreenlightVenue public immutable venue;
@@ -83,7 +85,7 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
     mapping(uint64 => Request) public requests;
 
     modifier onlyOwner() {
-        if (msg.sender != owner) revert OnlyOwner();
+        if (msg.sender != owner && msg.sender != address(this)) revert OnlyOwner();
         _;
     }
 
@@ -229,6 +231,37 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
 
     function withdraw(IERC20 token, address to, uint256 amount) external onlyOwner {
         token.safeTransfer(to, amount);
+    }
+
+    /// @notice Sell all the ETH the account holds back to dollars at the live price.
+    function closePosition() public onlyOwner returns (uint256 usdOut) {
+        uint256 eth = weth.balanceOf(address(this));
+        if (eth == 0) return 0;
+        (uint256 p,) = venue.price();
+        usdOut = eth * p / (1e12 * _priceScale * 100);
+        if (usdOut == 0) return 0;
+        (uint256 fill, uint256 ethIn) = venue.swap(1, usdOut, p, 0);
+        emit PositionClosed(ethIn, usdOut, fill);
+    }
+
+    /// @notice Leave in one step: stop the agent on every chain, take away its permission to trade, sell back to
+    /// dollars if the price is available, and send everything to `to`.
+    function closeAccount(address payable to) external onlyOwner {
+        if (!ownerFrozen) {
+            ownerFrozen = true;
+            emit OwnerAction(++ownerActions, true);
+        }
+        agent = address(0);
+        emit AgentChanged(address(0));
+        // Selling back needs a fresh price; without one, the ETH is withdrawn as it is.
+        try this.closePosition() { } catch { }
+        uint256 u = usd.balanceOf(address(this));
+        if (u > 0) usd.safeTransfer(to, u);
+        uint256 w = weth.balanceOf(address(this));
+        if (w > 0) weth.safeTransfer(to, w);
+        uint256 n = address(this).balance;
+        if (n > 0) _pay(to, n);
+        emit AccountClosed(to, u, w, n);
     }
 
     function withdrawNative(address payable to, uint256 amount) external onlyOwner {

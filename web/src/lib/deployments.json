@@ -15,12 +15,22 @@
         "tx": "0x5d89f0a180f84228517eb82c1efa5693d18ef6f149bbe52553c65d96898a2a5c",
         "block": 68465001
       },
+      "previousFactories": [
+        {
+          "address": "0x132cd04d204902c30203d20a24788c41f72ec203",
+          "tx": "0x3c06540e9ee0d8487b543eb8fe78296e7c348dacab66e57ad9ff6009481116af",
+          "block": 68465002
+        }
+      ],
+      "previousRegisterTxs": [
+        "0xe334dabc9ab290569256b915f5eddd98d81db3060e7f1d8f00ae4030a0dbb19a"
+      ],
       "factory": {
-        "address": "0x132cd04d204902c30203d20a24788c41f72ec203",
-        "tx": "0x3c06540e9ee0d8487b543eb8fe78296e7c348dacab66e57ad9ff6009481116af",
-        "block": 68465002
+        "address": "0x0561390cddd091e25780cf27eae868215c02e1ff",
+        "tx": "0xd54c65c884b8e3321c9e6030df8cb3972c1f16bcca6bce4f01be550fac243dc2",
+        "block": 68484198
       },
-      "registerTx": "0xe334dabc9ab290569256b915f5eddd98d81db3060e7f1d8f00ae4030a0dbb19a"
+      "registerTx": "0x287c0491b350455cd5e954cfa3a3a478ac37800e86ccb6697db9db40a6e9adfe"
     },
     "84532": {
       "name": "Base Sepolia",
@@ -29,12 +39,22 @@
         "tx": "0x10eeb40a70fbfd6d4d76ea4cc1109322dfbdb7801ae448c00513bc3d2c39ab24",
         "block": 61977790
       },
+      "previousFactories": [
+        {
+          "address": "0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7",
+          "tx": "0xf0869717679b55bb36825ae8a0d3d279a5e72f2fbb9d3f60be70e1609f549560",
+          "block": 61977794
+        }
+      ],
+      "previousRegisterTxs": [
+        "0xe87a2b5224594042d597a2bbe6429698c566a19eb518efdb81e78e1e7fa710d6"
+      ],
       "factory": {
-        "address": "0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7",
-        "tx": "0xf0869717679b55bb36825ae8a0d3d279a5e72f2fbb9d3f60be70e1609f549560",
-        "block": 61977794
+        "address": "0x0466d0db9782742e5a799b178ead73f4febf6a0b",
+        "tx": "0x9112e3dfffe229caed407e0340dc3789bf4b1cd21dfc1b4fbe1310915c90e40f",
+        "block": 62073767
       },
-      "registerTx": "0xe87a2b5224594042d597a2bbe6429698c566a19eb518efdb81e78e1e7fa710d6"
+      "registerTx": "0x646443538834a84a358bf57e4e5c76d225eb807fcd3b6010cccdf751b5c5dfd5"
     }
   }
 }

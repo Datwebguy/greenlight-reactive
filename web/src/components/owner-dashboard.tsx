@@ -13,6 +13,7 @@ import type { AccountView, OwnerView, TimelineItem } from "@/lib/server/account"
 import type { DecisionRow } from "@/lib/server/db";
 import { ChainChip, chainLabel } from "./chain-chip";
 import { LimitChart } from "./limit-chart";
+import { Manage } from "./manage";
 import { Gauge } from "./gauge";
 import { Scorecard } from "./scorecard";
 import { Ticker } from "./motion";
@@ -42,25 +43,28 @@ function useAct() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function act(key: string, chainId: number, params: Parameters<typeof writeContractAsync>[0]) {
+  async function act(key: string, chainId: number, params: Parameters<typeof writeContractAsync>[0]): Promise<boolean> {
     setBusy(key);
     setError(null);
     try {
       const id = chainId as 84532 | 1301;
       await switchChainAsync({ chainId: id });
       const hash = await writeContractAsync({ ...params, chainId: id } as never);
-      await clients[id]?.waitForTransactionReceipt({ hash });
+      const receipt = await clients[id]?.waitForTransactionReceipt({ hash });
+      if (receipt && receipt.status !== "success") throw new Error("The network refused this step. Nothing was changed.");
       await qc.invalidateQueries();
+      return true;
     } catch (e) {
       const msg = (e as { shortMessage?: string }).shortMessage ?? (e as Error).message;
       setError(msg.includes("User rejected") ? "You cancelled the request in your wallet." : msg.split("\n")[0]);
+      return false;
     } finally {
       setBusy(null);
     }
   }
   return { act, busy, error };
 }
-type Act = ReturnType<typeof useAct>["act"];
+export type Act = ReturnType<typeof useAct>["act"];
 
 export function OwnerDashboard({ owner }: { owner: Address }) {
   const { data, error, isLoading } = useOwner(owner);
@@ -174,6 +178,8 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
         </div>
         <Approvals accounts={data.accounts} isOwner={isOwner} act={act} busy={busy} />
       </div>
+
+      {isOwner && <Manage owner={owner} accounts={data.accounts} frozen={frozen} act={act} busy={busy} />}
 
       <div id="scorecard" className="scroll-mt-28">
         <Scorecard items={data.timeline} />

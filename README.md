@@ -10,6 +10,7 @@ An AI that can trade for you is only useful if you can trust it with a little ro
 - The agent trades inside the limit. Its decisions come from a model in a secure enclave on NEAR AI Cloud, and your account checks the enclave's signature on-chain before any money moves. Anything unsigned, or bigger than the limit, waits for your approval.
 - A contract on Reactive Network judges every trade against the Chainlink price once its window has passed. A run of good trades raises the limit; each bad one cuts it.
 - Too many losses in a row, or too large a total loss, freezes the agent on every chain within seconds. You can freeze it yourself from any chain too. Only you can restart it.
+- You can step in or leave at any time: pause, sell the agent's ETH back to dollars, withdraw any amount, change the rules, take away the AI's permission to trade, or close the account and get everything back in one step.
 
 The scoring runs entirely on Reactive Network. It needs no server and keeps working when the AI and the website are offline.
 
@@ -81,7 +82,7 @@ npm test
 
 **Delivery is safe to repeat and safe to lose.** Every update carries a sequence number and the account applies only newer ones, so a repeated delivery changes nothing. If a delivery is lost, anyone can press **Fetch the latest limit** (or call `requestResync()`), and the scorer sends the current state again. Events from contracts the scorer does not know are ignored.
 
-**The AI cannot act outside the rules.** The agent's key can only call `trade()`. It cannot withdraw, change rules, unfreeze, or approve its own requests. If the enclave is unavailable, a backup model can still suggest trades, but they carry no enclave signature and always wait for the owner.
+**The AI cannot act outside the rules.** The agent's key can only call `trade()`. It cannot withdraw, change rules, unfreeze, approve its own requests, or stop the owner from closing the account. `closeAccount(to)` pauses the agent everywhere, removes its permission, sells back to dollars when a fresh price is available and sends every balance to the owner; if the price is stale, the ETH is sent home as it is. If the enclave is unavailable, a backup model can still suggest trades, but they carry no enclave signature and always wait for the owner.
 
 ## The full loop, on-chain
 
@@ -135,16 +136,16 @@ Across every update so far, a decision on Reactive Network reached each chain in
 | Contract | Network | Address |
 |---|---|---|
 | GreenlightScorer | Reactive Lasna (5318007) | [`0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8`](https://lasna.reactscan.net/address/0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8) |
-| GreenlightFactory | Base Sepolia (84532) | [`0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7`](https://sepolia.basescan.org/address/0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7) |
+| GreenlightFactory | Base Sepolia (84532) | [`0x0466d0db9782742e5a799b178ead73f4febf6a0b`](https://sepolia.basescan.org/address/0x0466d0db9782742e5a799b178ead73f4febf6a0b) |
 | GreenlightVenue | Base Sepolia (84532) | [`0x86a290b555be160087f50bfc585ebc0f8ee4f55a`](https://sepolia.basescan.org/address/0x86a290b555be160087f50bfc585ebc0f8ee4f55a) |
-| Demo account | Base Sepolia (84532) | [`0xa03a683E72180ad87ce6f45f7d6F7B99936841D4`](https://sepolia.basescan.org/address/0xa03a683E72180ad87ce6f45f7d6F7B99936841D4) |
-| GreenlightFactory | Unichain Sepolia (1301) | [`0x132cd04d204902c30203d20a24788c41f72ec203`](https://sepolia.uniscan.xyz/address/0x132cd04d204902c30203d20a24788c41f72ec203) |
+| Live agent account | Base Sepolia (84532) | [`0xDfcD99b5369635A1501eA96Edfb79BC9483E35e1`](https://sepolia.basescan.org/address/0xDfcD99b5369635A1501eA96Edfb79BC9483E35e1) |
+| GreenlightFactory | Unichain Sepolia (1301) | [`0x0561390cddd091e25780cf27eae868215c02e1ff`](https://sepolia.uniscan.xyz/address/0x0561390cddd091e25780cf27eae868215c02e1ff) |
 | GreenlightVenue | Unichain Sepolia (1301) | [`0xeb0be28cca20db3a46542fc833685ceb56aaad9b`](https://sepolia.uniscan.xyz/address/0xeb0be28cca20db3a46542fc833685ceb56aaad9b) |
-| Demo account | Unichain Sepolia (1301) | [`0x4Ca9848bFa77293c9FCe459884C22Ac96244099f`](https://sepolia.uniscan.xyz/address/0x4Ca9848bFa77293c9FCe459884C22Ac96244099f) |
+| Live agent account | Unichain Sepolia (1301) | [`0xffC76ebAd44dB68a1900CCB11A7BFbe3E46A823D`](https://sepolia.uniscan.xyz/address/0xffC76ebAd44dB68a1900CCB11A7BFbe3E46A823D) |
 
-Every contract above is verified on Sourcify, so anyone can compare the source with what is running: [scorer](https://sourcify.dev/server/repo-ui/5318007/0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8), Base [factory](https://sourcify.dev/server/repo-ui/84532/0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7), [venue](https://sourcify.dev/server/repo-ui/84532/0x86a290b555be160087f50bfc585ebc0f8ee4f55a) and [demo account](https://sourcify.dev/server/repo-ui/84532/0xa03a683E72180ad87ce6f45f7d6F7B99936841D4), Unichain [factory](https://sourcify.dev/server/repo-ui/1301/0x132cd04d204902c30203d20a24788c41f72ec203), [venue](https://sourcify.dev/server/repo-ui/1301/0xeb0be28cca20db3a46542fc833685ceb56aaad9b) and [demo account](https://sourcify.dev/server/repo-ui/1301/0x4Ca9848bFa77293c9FCe459884C22Ac96244099f).
+Every contract above is verified on Sourcify, so anyone can compare the source with what is running: [scorer](https://sourcify.dev/server/repo-ui/5318007/0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8), Base [factory](https://sourcify.dev/server/repo-ui/84532/0x0466d0db9782742e5a799b178ead73f4febf6a0b), [venue](https://sourcify.dev/server/repo-ui/84532/0x86a290b555be160087f50bfc585ebc0f8ee4f55a) and [account](https://sourcify.dev/server/repo-ui/84532/0xDfcD99b5369635A1501eA96Edfb79BC9483E35e1), Unichain [factory](https://sourcify.dev/server/repo-ui/1301/0x0561390cddd091e25780cf27eae868215c02e1ff), [venue](https://sourcify.dev/server/repo-ui/1301/0xeb0be28cca20db3a46542fc833685ceb56aaad9b) and [account](https://sourcify.dev/server/repo-ui/1301/0xffC76ebAd44dB68a1900CCB11A7BFbe3E46A823D).
 
-Addresses and deployment transactions are in [`deployments/testnet.json`](deployments/testnet.json). The first deployment, where the first trades were judged and a single freeze stopped the agent on both chains in 4 seconds, is recorded in [`deployments/testnet-v1.json`](deployments/testnet-v1.json); replay it with `npm run replay -- --deployment testnet-v1`. Prices come from the Chainlink ETH/USD feed on Base Sepolia (aggregator `0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3`).
+Addresses and deployment transactions are in [`deployments/testnet.json`](deployments/testnet.json). The first deployment, where the first trades were judged and a single freeze stopped the agent on both chains in 4 seconds, is recorded in [`deployments/testnet-v1.json`](deployments/testnet-v1.json), and the accounts opened before one-step closing was added in [`deployments/testnet-v2.json`](deployments/testnet-v2.json); replay it with `npm run replay -- --deployment testnet-v1`. Prices come from the Chainlink ETH/USD feed on Base Sepolia (aggregator `0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3`).
 
 **The scorer only pays for what it uses.** It follows the price feed only while a trade is waiting to be judged, and stops as soon as the queue is empty, so a quiet day costs almost nothing.
 

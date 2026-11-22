@@ -511,6 +511,46 @@ contract GreenlightTest is Test {
 
     // ------------------------------------------------ owner controls, across accounts
 
+    function test_ownerCanSellBackToDollars() public {
+        GreenlightAccount a = open(policy());
+        assertTrue(agentTrade(a, 0, 40_00));
+        uint256 usdBefore = venue.usd().balanceOf(address(a));
+        vm.prank(agent);
+        vm.expectRevert(GreenlightAccount.OnlyOwner.selector);
+        a.closePosition();
+        vm.prank(owner);
+        a.closePosition();
+        assertLt(venue.weth().balanceOf(address(a)), 1e9); // only rounding dust is left
+        assertApproxEqAbs(venue.usd().balanceOf(address(a)) - usdBefore, 40e6, 1);
+    }
+
+    function test_closeAccountStopsEverythingAndPaysTheOwner() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount b = open(policy());
+        assertTrue(agentTrade(a, 0, 40_00));
+        uint256 total = venue.usd().balanceOf(address(a)) + 40e6;
+        address payable to = payable(makeAddr("home"));
+        vm.prank(owner);
+        a.closeAccount(to);
+        relay();
+        assertEq(a.agent(), address(0));
+        assertTrue(a.frozen());
+        assertTrue(b.frozen()); // the stop reaches the owner's other accounts
+        assertEq(venue.usd().balanceOf(address(a)), 0);
+        assertApproxEqAbs(venue.usd().balanceOf(to), total, 1);
+    }
+
+    function test_closeAccountStillPaysOutWhenThePriceIsStale() public {
+        GreenlightAccount a = open(policy());
+        assertTrue(agentTrade(a, 0, 40_00));
+        uint256 eth = venue.weth().balanceOf(address(a));
+        vm.warp(block.timestamp + 3 days);
+        address payable to = payable(makeAddr("home"));
+        vm.prank(owner);
+        a.closeAccount(to);
+        assertEq(venue.weth().balanceOf(to), eth); // the ether comes home as it is
+    }
+
     function test_ownerFreezeReachesEveryAccount() public {
         GreenlightAccount a = open(policy());
         GreenlightAccount b = open(policy()); // the same owner's second account

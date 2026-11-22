@@ -7,32 +7,13 @@ import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "w
 import { greenlightFactoryAbi, greenlightVenueAbi } from "@/lib/abi";
 import { hostedAgent, tradingChains } from "@/lib/config";
 import { chainBrand } from "./brand";
+import { PolicyInputs, policyFields, readPolicy } from "./policy-fields";
 import { Button, Card, CardHead } from "./ui";
 
-interface Field {
-  key: string;
-  label: string;
-  hint: string;
-  unit: string;
-  value: string;
-  step?: string;
-}
-
-const initial: Field[] = [
-  { key: "start", label: "Starting daily limit", hint: "What the agent may spend per day on day one.", unit: "$", value: "50" },
-  { key: "ceiling", label: "Highest it can earn", hint: "Good results never raise the limit above this.", unit: "$", value: "250" },
-  { key: "floor", label: "Lowest it can be cut to", hint: "Bad results never cut the limit below this.", unit: "$", value: "10" },
-  { key: "window", label: "Judge each trade after", hint: "How long to wait before comparing a trade with the price.", unit: "min", value: "10" },
-  { key: "wins", label: "Wins in a row for a raise", hint: "How many good trades in a row earn a higher limit.", unit: "trades", value: "3" },
-  { key: "step", label: "Size of each change", hint: "How much the limit rises or falls each time.", unit: "%", value: "25" },
-  { key: "losses", label: "Losses in a row that freeze it", hint: "The agent stops on every chain after this many.", unit: "trades", value: "3" },
-  { key: "maxLoss", label: "Total loss that freezes it", hint: "Counted since the last unfreeze. Leave 0 to switch off.", unit: "$", value: "5", step: "0.01" },
-  { key: "slippage", label: "Price may move by up to", hint: "Trades fail if the price moved more than this since the decision.", unit: "%", value: "1", step: "0.1" },
-];
 
 export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
   const { address } = useAccount();
-  const [fields, setFields] = useState(initial);
+  const [fields, setFields] = useState(() => policyFields());
   const [chains, setChains] = useState<Record<number, boolean>>({ 84532: true, 1301: true });
   const [deposit, setDeposit] = useState("0.002");
   const [agent, setAgent] = useState<string>(hostedAgent ?? "");
@@ -49,15 +30,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
     staleTime: 300_000,
   });
 
-  const v = Object.fromEntries(fields.map((f) => [f.key, Number(f.value)]));
-  const cents = (x: number) => BigInt(Math.round(x * 100));
-  const problems: string[] = [];
-  if (!(v.ceiling > 0)) problems.push("The highest limit must be above zero.");
-  if (v.floor > v.start || v.start > v.ceiling) problems.push("The starting limit must sit between the lowest and the highest.");
-  if (!(v.window > 0)) problems.push("The judging time must be at least a minute.");
-  if (!(v.step > 0 && v.step < 100)) problems.push("Each change must be between 0% and 100%.");
-  if (!(v.wins >= 1 && v.wins <= 255) || !(v.losses >= 1 && v.losses <= 255)) problems.push("Streak lengths must be between 1 and 255.");
-  if (!(v.slippage >= 0 && v.slippage <= 20)) problems.push("Price movement must be between 0% and 20%.");
+  const { problems, policy } = readPolicy(fields);
   if (!isAddress(agent)) problems.push("Enter the address of the agent that will trade.");
   const teeSigner = signer.data?.signers[0];
   if (!teeSigner) problems.push(signer.isLoading ? "Reading the AI enclave's signing address…" : "The AI enclave's signing address is unavailable right now.");
@@ -67,17 +40,6 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
   async function submit() {
     setError(null);
     try {
-      const policy = {
-        startLimitCents: cents(v.start),
-        ceilingCents: cents(v.ceiling),
-        floorCents: cents(v.floor),
-        scoreWindow: Math.round(v.window * 60),
-        maxSlippageBps: Math.round(v.slippage * 100),
-        stepBps: Math.round(v.step * 100),
-        raiseAfterWins: v.wins,
-        freezeAfterLosses: v.losses,
-        maxLossCents: cents(v.maxLoss || 0),
-      };
       for (const c of selected) {
         const id = c.chain.id as 84532 | 1301;
         setStatus(`Opening your account on ${c.chain.name}…`);
@@ -128,27 +90,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
         title="Set the agent's rules"
         hint="You sign these once. You can change them, freeze the agent or withdraw at any time."
       />
-      <div className="grid gap-x-10 gap-y-7 py-6 md:grid-cols-2">
-        {fields.map((f, i) => (
-          <label key={f.key} className="block">
-            <span className="text-[14px] font-semibold text-ink">{f.label}</span>
-            <span className="mt-0.5 block text-[13px] text-mute">{f.hint}</span>
-            <span className="mt-2 flex items-center rounded-2xl border border-line-2 bg-card focus-within:border-go">
-              {f.unit === "$" && <span className="pl-3 text-mute">$</span>}
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step={f.step ?? "1"}
-                value={f.value}
-                onChange={(e) => setFields(fields.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}
-                className="num w-full bg-transparent px-3 py-2.5 text-[15px] outline-none"
-              />
-              {f.unit !== "$" && <span className="pr-3 text-[13px] text-mute">{f.unit}</span>}
-            </span>
-          </label>
-        ))}
-      </div>
+      <PolicyInputs fields={fields} onChange={setFields} />
 
       <div className="grid gap-7 border-t border-line py-6 md:grid-cols-2">
         <div>

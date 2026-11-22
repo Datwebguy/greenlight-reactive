@@ -12,6 +12,8 @@ export interface TradingChain {
   priceFeed: Address;
   venue?: Address;
   factory?: Address;
+  /** The current factory first, then earlier ones whose accounts still run. */
+  factories: Address[];
   fromBlock: bigint;
   /** Largest block range the history RPC accepts in one log query. */
   logSpan: bigint;
@@ -27,7 +29,7 @@ type Deployed = {
 
 type Deployments = {
   scorer?: Deployed & { chainId: number; priceChainId: number; aggregator: Address };
-  chains?: Record<string, { name: string; venue?: Deployed; factory?: Deployed; registerTx?: string }>;
+  chains?: Record<string, { name: string; venue?: Deployed; factory?: Deployed; registerTx?: string; previousFactories?: Deployed[] }>;
 };
 
 const d = deployments as Deployments;
@@ -60,6 +62,7 @@ function trading(
     priceFeed,
     venue: entry?.venue?.address,
     factory: entry?.factory?.address,
+    factories: [entry?.factory, ...(entry?.previousFactories ?? [])].filter((f): f is Deployed => Boolean(f)).map((f) => f.address),
     fromBlock: BigInt(entry?.venue?.block ?? 0),
     logSpan,
     logRpcUrl,

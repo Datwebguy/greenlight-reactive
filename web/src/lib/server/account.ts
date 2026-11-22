@@ -1,5 +1,5 @@
 import "server-only";
-import { getAbiItem, type AbiEvent, type Address } from "viem";
+import { getAbiItem, toFunctionSelector, type AbiEvent, type Address } from "viem";
 import { greenlightAccountAbi, greenlightFactoryAbi, greenlightScorerAbi, venueTokenAbi } from "../abi";
 import { chainById, lasna, tradingChains } from "../config";
 import { clientFor, readLogs, timeOf, type TimedLog } from "./logs";
@@ -48,6 +48,11 @@ export interface AccountView {
   eth: number;
   gas: number;
   openRequests: RequestView[];
+  /** Exact balances, for withdrawing everything. */
+  raw: { usd: string; eth: string; gas: string };
+  tokens: { usd: Address; eth: Address };
+  /** Accounts opened before closing was added can still be emptied, just not sold back first. */
+  canClose: boolean;
 }
 
 export interface BookView {
@@ -143,6 +148,16 @@ const scorerEvents = ["TradeScored", "LimitUpdated"].map((n) => ev(greenlightSco
 const n = (v: unknown) => Number(v as bigint);
 const sideOf = (v: unknown): "buy" | "sell" => (n(v) === 0 ? "buy" : "sell");
 
+/** AccountCreated logs from every factory a chain has had. */
+async function factoryLogs(c: (typeof tradingChains)[number], opts: { args?: Record<string, unknown> }) {
+  const all = await Promise.all(
+    c.factories.map((address) =>
+      readLogs({ chainId: c.chain.id, address, events: [ev(greenlightFactoryAbi, "AccountCreated")], fromBlock: c.fromBlock, ...opts }),
+    ),
+  );
+  return all.flat();
+}
+
 /** Every Greenlight account `owner` opened, on every chain. */
 export async function accountsOf(owner: Address): Promise<{ chainId: number; address: Address; tx: string; time: number }[]> {
   const out: { chainId: number; address: Address; tx: string; time: number }[] = [];
@@ -150,11 +165,7 @@ export async function accountsOf(owner: Address): Promise<{ chainId: number; add
     tradingChains
       .filter((c) => c.factory)
       .map(async (c) => {
-        const logs = await readLogs({
-          chainId: c.chain.id,
-          address: c.factory!,
-          events: [ev(greenlightFactoryAbi, "AccountCreated")],
-          fromBlock: c.fromBlock,
+        const logs = await factoryLogs(c, {
           args: { owner },
         });
         for (const l of logs) {
@@ -172,11 +183,7 @@ export async function allAccounts(): Promise<{ chainId: number; owner: Address; 
     tradingChains
       .filter((c) => c.factory)
       .map(async (c) => {
-        const logs = await readLogs({
-          chainId: c.chain.id,
-          address: c.factory!,
-          events: [ev(greenlightFactoryAbi, "AccountCreated")],
-          fromBlock: c.fromBlock,
+        const logs = await factoryLogs(c, {
         });
         for (const l of logs) {
           out.push({ chainId: c.chain.id, owner: l.args.owner as Address, address: l.args.account as Address, time: timeOf(l) });
@@ -185,6 +192,8 @@ export async function allAccounts(): Promise<{ chainId: number; owner: Address; 
   );
   return out.sort((a, b) => b.time - a.time);
 }
+
+const CLOSE_SELECTOR = toFunctionSelector("closeAccount(address)").slice(2);
 
 export async function readAccount(chainId: number, address: Address): Promise<AccountView> {
   const net = chainById(chainId)!;
@@ -209,10 +218,11 @@ export async function readAccount(chainId: number, address: Address): Promise<Ac
   const res = await client.multicall({ contracts: names.map((f) => call(f)) as never, allowFailure: false });
   const r = Object.fromEntries(names.map((k, i) => [k, res[i]])) as unknown as Record<(typeof names)[number], unknown>;
   const p = r.policy as readonly bigint[];
-  const [usd, eth, gas] = await Promise.all([
+  const [usd, eth, gas, code] = await Promise.all([
     client.readContract({ address: r.usd as Address, abi: venueTokenAbi, functionName: "balanceOf", args: [address] }),
     client.readContract({ address: r.weth as Address, abi: venueTokenAbi, functionName: "balanceOf", args: [address] }),
     client.getBalance({ address }),
+    client.getCode({ address }),
   ]);
 
   const logs = await readLogs({ chainId, address, events: accountEvents, fromBlock: net.fromBlock });
@@ -266,6 +276,9 @@ export async function readAccount(chainId: number, address: Address): Promise<Ac
     eth: Number(eth) / 1e18,
     gas: Number(gas) / 1e18,
     openRequests,
+    raw: { usd: String(usd), eth: String(eth), gas: String(gas) },
+    tokens: { usd: r.usd as Address, eth: r.weth as Address },
+    canClose: Boolean(code?.includes(CLOSE_SELECTOR)),
   };
 }
 

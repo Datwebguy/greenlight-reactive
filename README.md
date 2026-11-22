@@ -53,7 +53,11 @@ No faucet, no setup. All you need is a browser wallet such as MetaMask, Rabby or
 | 5 | Watch the **Scorecard** | Each trade is judged against Chainlink after its window, and your limit moves on both chains |
 | 6 | Open **Manage** | Pause, sell back to dollars, withdraw, change the rules, turn the AI off, or close the account |
 
-Prefer to just watch? The [live agent](https://greenlight-earned.vercel.app/live) trades every 5 minutes and needs no wallet to follow.
+**No wallet? Verify it in 60 seconds:**
+
+1. Open the [live agent](https://greenlight-earned.vercel.app/live). It trades every 5 minutes; its earned limit, record and latest reasoning are on the page.
+2. Follow one full loop: an AI trade on [Base](https://sepolia.basescan.org/tx/0x3152ce71b24bb49824de7419b04b5fb60c8ab67b720e4ebd345cf9c62a06c32b) → judged by the scorer on [Reactive Lasna](https://lasna.reactscan.net/tx/0x819ed0aec3afacca07f450e2a8d1604f0edbd727541ebaa06bf0f4808d5b0047) → the new limit applied on [Base](https://sepolia.basescan.org/tx/0xc0803adb2a665c68e9fbac8a7d6ecf82996f433eb3dd7b5ace96035e5b282245) and [Unichain](https://sepolia.uniscan.xyz/tx/0xe5fdd9569d32b1b4f8d79d674488b58bf875c82e02d9b6813bae1337961730aa) within 3 seconds.
+3. Browse [every transaction so far](deployments/EVIDENCE.md), or rebuild it yourself with `npm run replay`.
 
 ## Why Greenlight
 
@@ -64,6 +68,21 @@ People trust a new hire with a little responsibility first, then give them more 
 | A starting daily limit, the highest it may ever reach and the lowest it can be cut to | Every trade is judged against Chainlink's price once its window has passed |
 | How many wins earn a raise, and how many losses freeze the agent | Good runs raise the limit, losing trades cut it, a bad streak freezes the agent on every chain |
 | How long to wait before judging a trade, and how far the price may move | Your rules are enforced by contracts, around the clock, with no server to run |
+
+### Who it is for
+
+- **People who want an AI to trade for them** but do not trust it with everything on day one.
+- **Builders of AI agents**, who get a public track record nobody can edit: proof of skill instead of a promise.
+- **Teams and treasuries** that want automation with hard limits, an approval step for anything large and one switch that stops it everywhere.
+
+### Why an earned limit beats a fixed budget
+
+| | Fixed budget | Greenlight |
+|---|---|---|
+| A good agent | Stays boxed in at the same cap forever | Earns more room, step by step, up to your highest |
+| A bad agent | Keeps spending until the cap runs out | Loses room after each losing trade and freezes after a bad streak |
+| Proof of skill | None | Every trade judged against Chainlink and recorded on-chain |
+| Who decides | You, by hand, every time | Your rules, applied automatically by Reactive Network |
 
 ## Highlights
 
@@ -182,6 +201,8 @@ flowchart LR
 | [`GreenlightFactory.sol`](contracts/GreenlightFactory.sol) | Opens accounts and announces them so the scorer starts watching. |
 | [`web/`](web) | The app (Next.js) and the agent service. Everything shown is read from the chains. |
 
+**Why this needs Reactive Network.** Judging a trade means waiting for the market, comparing prices, keeping a running record and then changing the limit on several chains at once. No single chain can see the others, and a server doing this would ask the owner to trust it. The scorer does all of it as a Reactive contract: it listens to every account's trades, owner actions and rule changes, wakes on Chainlink price updates only while trades are waiting, and pushes each new limit to every chain the owner uses. Take Reactive away and there is no judging, no earned limit and no one-switch freeze.
+
 **Updates are exactly-once in effect.** Each update carries a sequence number and accounts apply only newer ones, so a repeated delivery changes nothing. Anyone can press **Fetch the latest limit** (`requestResync()`) and the scorer sends the current state again.
 
 **The AI has one permission: to trade inside the rules.** Withdrawing, changing rules, restarting after a freeze and approving requests belong to the owner alone. Decisions from the backup model carry no enclave signature, so they always go to the owner for approval.
@@ -239,7 +260,7 @@ A decision on Reactive Network reaches each chain in **2 to 3 seconds** typicall
   - `check_rc_source` on every version of the scorer and accounts
   - `get_network_info` for supported chains and their callback proxies
   - `validate_subscription` and `list_subscriptions` to confirm every subscription after deployment
-  - `get_rc_health` for funding and reserves
+  - `get_rc_health` for funding and reserves; on its advice the scorer keeps a REACT reserve through the system contract's `depositTo`, and `list_subscriptions` reports all 54 of its subscriptions active
   - `trace_origin_event` to follow an account from its origin transaction to the callback
   - `estimate_cost`, which shaped the scorer's habit of following prices only while trades wait
   - `search_docs` for faucet, delivery and debugging guidance

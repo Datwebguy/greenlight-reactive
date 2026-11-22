@@ -49,9 +49,9 @@ export async function askNear(system: string, user: string, timeoutMs = 150_000)
       chat_template_kwargs: { enable_thinking: process.env.NEAR_AI_THINKING === "on" },
       messages: [
         { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "user", content: `${user}\n\nReply with only a JSON object with the keys "action", "order", "confidence" and "reason".` },
       ],
-      response_format: { type: "json_schema", json_schema: { name: "decision", strict: true, schema: decisionSchema } },
+      // No strict response format here: with it this model pads its answer and takes minutes instead of seconds.
     }),
   );
   const t0 = Date.now();
@@ -140,7 +140,10 @@ export async function askOpenAI(system: string, user: string): Promise<{ decisio
 }
 
 function parseDecision(content: string): Decision {
-  const d = JSON.parse(content);
+  // Accept a bare object or one wrapped in a code fence or short preamble.
+  const start = content.indexOf("{");
+  const end = content.lastIndexOf("}");
+  const d = JSON.parse(start >= 0 && end > start ? content.slice(start, end + 1) : content);
   const action = ["buy", "sell", "hold"].includes(d.action) ? d.action : "hold";
   return {
     action,

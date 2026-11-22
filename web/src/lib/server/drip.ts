@@ -30,13 +30,18 @@ export async function drip(wallet: Address): Promise<DripResult> {
       .map(async (c) => {
         const client = clientFor(c.chain.id);
         if ((await client.getBalance({ address: wallet })) >= amount) return; // already has enough here
-        const w = createWalletClient({ account: from, chain: c.chain, transport: http(c.rpcUrl) });
-        const tx = await w.sendTransaction({ to: wallet, value: amount });
-        await client.waitForTransactionReceipt({ hash: tx });
-        sent.push({ chainId: c.chain.id, tx });
+        try {
+          const w = createWalletClient({ account: from, chain: c.chain, transport: http(c.rpcUrl) });
+          const tx = await w.sendTransaction({ to: wallet, value: amount });
+          await client.waitForTransactionReceipt({ hash: tx });
+          sent.push({ chainId: c.chain.id, tx });
+        } catch (e) {
+          // One chain running low never stops the other from sending.
+          console.error(`drip on ${c.chain.name} failed:`, (e as Error).message.split("\n")[0]);
+        }
       }),
   );
-  if (!sent.length) return { ok: false, error: "This wallet already has enough test ETH to open an account." };
+  if (!sent.length) return { ok: false, error: "This wallet already has enough test ETH, or free test ETH is resting. The faucet link works too." };
 
   const record = JSON.stringify({ wallet: who, sent, at: new Date().toISOString() });
   const opts = { access: "public" as const, contentType: "application/json", addRandomSuffix: false };

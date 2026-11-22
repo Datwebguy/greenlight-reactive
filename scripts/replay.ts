@@ -3,6 +3,7 @@
  *
  *   npm run replay                 every owner
  *   npm run replay -- 0xOwner...   one owner
+ *   npm run replay -- --deployment testnet-v1   the first deployment
  *
  * For each owner it prints, in time order: accounts opened, trades the AI made (and whether the enclave signed
  * them), the scorer's verdicts on Reactive Network, limit changes and freezes, and when each change reached each
@@ -14,8 +15,11 @@ import { createPublicClient, http, parseAbiItem, type AbiEvent, type Address, ty
 import { chains, lasna } from "./networks.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
-const d = JSON.parse(fs.readFileSync(path.join(root, "deployments/testnet.json"), "utf8"));
-const onlyOwner = process.argv[2]?.toLowerCase();
+const args = process.argv.slice(2);
+const depIdx = args.indexOf("--deployment");
+const deployment = depIdx >= 0 ? args.splice(depIdx, 2)[1] : "testnet";
+const d = JSON.parse(fs.readFileSync(path.join(root, "deployments", `${deployment}.json`), "utf8"));
+const onlyOwner = args[0]?.toLowerCase();
 
 const explorer: Record<number, string> = {
   [lasna.viem.id]: "https://lasna.reactscan.net/tx/",

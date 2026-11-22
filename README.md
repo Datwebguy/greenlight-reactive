@@ -37,7 +37,7 @@ You see every account opening, every trade the AI made and whether the enclave s
 npm test
 ```
 
-28 tests, including one that verifies a real response signed by NEAR AI Cloud's enclave inside the account contract, and ones that replay duplicate events and lost callbacks to show nothing changes twice and nothing is lost.
+36 tests, including one that verifies a real response signed by NEAR AI Cloud's enclave inside the account contract, and ones that replay duplicate events and lost callbacks to show nothing changes twice and nothing is lost.
 
 **Open your own account**
 
@@ -87,17 +87,19 @@ npm test
 
 | Contract | Network | Address |
 |---|---|---|
-| GreenlightScorer | Reactive Lasna (5318007) | [`0x02813ffb18bc3f994836d3dfc3c223108be17dda`](https://lasna.reactscan.net/address/0x02813ffb18bc3f994836d3dfc3c223108be17dda) |
-| GreenlightFactory | Base Sepolia (84532) | [`0xf0b6692c893f9ea0a93c1581f3756e3521c701d6`](https://sepolia.basescan.org/address/0xf0b6692c893f9ea0a93c1581f3756e3521c701d6) |
-| GreenlightVenue | Base Sepolia (84532) | [`0x02813ffb18bc3f994836d3dfc3c223108be17dda`](https://sepolia.basescan.org/address/0x02813ffb18bc3f994836d3dfc3c223108be17dda) |
-| Demo account | Base Sepolia (84532) | [`0xAE131b8874B27a49a6Cf2857f7108B8467241a18`](https://sepolia.basescan.org/address/0xAE131b8874B27a49a6Cf2857f7108B8467241a18) |
-| GreenlightFactory | Unichain Sepolia (1301) | [`0xf0b6692c893f9ea0a93c1581f3756e3521c701d6`](https://sepolia.uniscan.xyz/address/0xf0b6692c893f9ea0a93c1581f3756e3521c701d6) |
-| GreenlightVenue | Unichain Sepolia (1301) | [`0x02813ffb18bc3f994836d3dfc3c223108be17dda`](https://sepolia.uniscan.xyz/address/0x02813ffb18bc3f994836d3dfc3c223108be17dda) |
-| Demo account | Unichain Sepolia (1301) | [`0xAE131b8874B27a49a6Cf2857f7108B8467241a18`](https://sepolia.uniscan.xyz/address/0xAE131b8874B27a49a6Cf2857f7108B8467241a18) |
+| GreenlightScorer | Reactive Lasna (5318007) | [`0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8`](https://lasna.reactscan.net/address/0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8) |
+| GreenlightFactory | Base Sepolia (84532) | [`0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7`](https://sepolia.basescan.org/address/0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7) |
+| GreenlightVenue | Base Sepolia (84532) | [`0x86a290b555be160087f50bfc585ebc0f8ee4f55a`](https://sepolia.basescan.org/address/0x86a290b555be160087f50bfc585ebc0f8ee4f55a) |
+| Demo account | Base Sepolia (84532) | [`0xa03a683E72180ad87ce6f45f7d6F7B99936841D4`](https://sepolia.basescan.org/address/0xa03a683E72180ad87ce6f45f7d6F7B99936841D4) |
+| GreenlightFactory | Unichain Sepolia (1301) | [`0x132cd04d204902c30203d20a24788c41f72ec203`](https://sepolia.uniscan.xyz/address/0x132cd04d204902c30203d20a24788c41f72ec203) |
+| GreenlightVenue | Unichain Sepolia (1301) | [`0xeb0be28cca20db3a46542fc833685ceb56aaad9b`](https://sepolia.uniscan.xyz/address/0xeb0be28cca20db3a46542fc833685ceb56aaad9b) |
+| Demo account | Unichain Sepolia (1301) | [`0x4Ca9848bFa77293c9FCe459884C22Ac96244099f`](https://sepolia.uniscan.xyz/address/0x4Ca9848bFa77293c9FCe459884C22Ac96244099f) |
 
-The source of every contract above is verified on Sourcify, so anyone can compare it with what is running: [scorer](https://sourcify.dev/server/repo-ui/5318007/0x02813ffb18bc3f994836d3dfc3c223108be17dda), [factory](https://sourcify.dev/server/repo-ui/84532/0xf0b6692c893f9ea0a93c1581f3756e3521c701d6), [venue](https://sourcify.dev/server/repo-ui/84532/0x02813ffb18bc3f994836d3dfc3c223108be17dda), [demo account](https://sourcify.dev/server/repo-ui/84532/0xAE131b8874B27a49a6Cf2857f7108B8467241a18), and on Unichain the [factory](https://sourcify.dev/server/repo-ui/1301/0xf0b6692c893f9ea0a93c1581f3756e3521c701d6), [venue](https://sourcify.dev/server/repo-ui/1301/0x02813ffb18bc3f994836d3dfc3c223108be17dda) and [demo account](https://sourcify.dev/server/repo-ui/1301/0xAE131b8874B27a49a6Cf2857f7108B8467241a18). The same addresses on both chains come from the same deployer's first transactions on each.
+Every contract above is verified on Sourcify, so anyone can compare the source with what is running: [scorer](https://sourcify.dev/server/repo-ui/5318007/0x90f536d8cf4e500e64e53d774a5e63186e0dc1b8), Base [factory](https://sourcify.dev/server/repo-ui/84532/0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7), [venue](https://sourcify.dev/server/repo-ui/84532/0x86a290b555be160087f50bfc585ebc0f8ee4f55a) and [demo account](https://sourcify.dev/server/repo-ui/84532/0xa03a683E72180ad87ce6f45f7d6F7B99936841D4), Unichain [factory](https://sourcify.dev/server/repo-ui/1301/0x132cd04d204902c30203d20a24788c41f72ec203), [venue](https://sourcify.dev/server/repo-ui/1301/0xeb0be28cca20db3a46542fc833685ceb56aaad9b) and [demo account](https://sourcify.dev/server/repo-ui/1301/0x4Ca9848bFa77293c9FCe459884C22Ac96244099f).
 
-Addresses and deployment transactions are also in [`deployments/testnet.json`](deployments/testnet.json). Prices come from the Chainlink ETH/USD feed on Base Sepolia (aggregator `0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3`).
+Addresses and deployment transactions are in [`deployments/testnet.json`](deployments/testnet.json). The first deployment, where the first trades were judged and a single freeze stopped the agent on both chains in 4 seconds, is recorded in [`deployments/testnet-v1.json`](deployments/testnet-v1.json); replay it with `npm run replay -- --deployment testnet-v1`. Prices come from the Chainlink ETH/USD feed on Base Sepolia (aggregator `0xa24A68DD788e1D7eb4CA517765CFb2b7e217e7a3`).
+
+**The scorer only pays for what it uses.** It follows the price feed only while a trade is waiting to be judged, and stops as soon as the queue is empty, so a quiet day costs almost nothing.
 
 ## Running it yourself
 

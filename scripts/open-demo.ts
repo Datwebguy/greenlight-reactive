@@ -40,7 +40,8 @@ const send = async (label: string, p: Promise<Hex>) => {
   return r;
 };
 
-await send("Agent gas", wallet.sendTransaction({ to: agent, value: parseEther(process.env.AGENT_GAS_ETH ?? "0.01") }));
+const agentGas = parseEther(process.env.AGENT_GAS_ETH ?? "0.01");
+if (agentGas > 0n) await send("Agent gas", wallet.sendTransaction({ to: agent, value: agentGas }));
 
 const policy = {
   startLimitCents: 50_00n,

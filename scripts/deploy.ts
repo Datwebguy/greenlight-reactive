@@ -29,6 +29,7 @@ const account = privateKeyToAccount(key);
 const scorerFunding = parseEther(process.env.SCORER_FUNDING_REACT ?? "10");
 const callbackGasLimit = BigInt(process.env.CALLBACK_GAS_LIMIT ?? "300000");
 const maxSettlePerPrice = BigInt(process.env.MAX_SETTLE_PER_PRICE ?? "4");
+const maxAccountsPerOwner = BigInt(process.env.MAX_ACCOUNTS_PER_OWNER ?? "4");
 
 // Lasna refuses transactions without a priority fee, which viem estimates as zero there.
 const fees = (chain: typeof lasna | TradingChain) =>
@@ -74,6 +75,7 @@ out.scorer ??= {
     priceChain.aggregator,
     callbackGasLimit,
     maxSettlePerPrice,
+    maxAccountsPerOwner,
   ], scorerFunding)),
   priceChainId: priceChain.viem.id,
   aggregator: priceChain.aggregator,

@@ -65,7 +65,7 @@ People trust a new hire with a little responsibility first, then give them more 
 
 ### 1. Watch the live agent
 
-Open the [live app](https://greenlight-earned.vercel.app) and press **Watch the live agent**. Its page shows the earned limit on its track between lowest and highest, today's remaining room, its record, and the result so far. The **Live** page lists every agent; two run now, each with its own owner and its own rules.
+Open the [live app](https://greenlight-earned.vercel.app) and press **Watch the live agent**. Its page shows the earned limit on its track between lowest and highest, today's remaining room, its record, and the result so far.
 
 <p align="center">
   <img src="docs/images/agent.png" alt="The live agent's page" width="680" />

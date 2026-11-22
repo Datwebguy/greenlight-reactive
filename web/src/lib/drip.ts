@@ -4,4 +4,4 @@ export function dripMessage(wallet: string, time: number) {
 }
 
 /** What each new wallet receives per chain: enough to open an account and keep it updated. */
-export const DRIP_ETH = "0.004";
+export const DRIP_ETH = "0.0025";

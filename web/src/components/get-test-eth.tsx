@@ -9,7 +9,7 @@ import { tradingChains } from "@/lib/config";
 import { DRIP_ETH, dripMessage } from "@/lib/drip";
 import { Button } from "./ui";
 
-const enough = parseEther("0.003");
+const enough = parseEther("0.0022"); // the 0.002 deposit for limit updates, plus fees
 
 /** One tap to get the test ETH a new visitor needs, sent straight to their wallet on every chain. */
 export function GetTestEth({ wallet }: { wallet: Address }) {

@@ -25,6 +25,8 @@ export interface DecisionRow {
   signer: string | null;
   tx: string | null;
   outcome: string;
+  /** Why the confidential model was not used, when the backup decided. */
+  nearError?: string;
 }
 
 const folder = (chainId: number, account: string) => `decisions/${chainId}-${account.toLowerCase()}/`;

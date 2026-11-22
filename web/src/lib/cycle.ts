@@ -20,6 +20,14 @@ const px = (p: number) => `$${p.toLocaleString("en-US", { minimumFractionDigits:
 
 type Of<K extends TimelineItem["kind"]> = Extract<TimelineItem, { kind: K }>;
 
+/** Win or loss as the scorer decides it: by the direction of the price move for that side, not rounded dollars. */
+export function verdict(s: { entryPrice: number; exitPrice: number; returnBps: number; pnlCents: number }, side?: "buy" | "sell"): "a win" | "a loss" | "even" {
+  if (s.returnBps > 0 || s.pnlCents > 0) return "a win";
+  if (s.returnBps < 0 || s.pnlCents < 0) return "a loss";
+  if (side && s.exitPrice !== s.entryPrice) return (s.exitPrice > s.entryPrice) === (side === "buy") ? "a win" : "a loss";
+  return "even";
+}
+
 /** The most recent complete cycle in an owner's history, newest kind first: a judged trade, a freeze, or joining. */
 export function latestCycle(items: TimelineItem[]): Cycle | null {
   const limits = items.filter((t): t is Of<"limit"> => t.kind === "limit");
@@ -61,7 +69,7 @@ export function latestCycle(items: TimelineItem[]): Cycle | null {
     }
     steps.push({
       chainId: s.chainId,
-      title: `Judged: ${s.pnlCents >= 0 ? "a win" : "a loss"} of ${s.returnBps >= 0 ? "+" : ""}${(s.returnBps / 100).toFixed(2)}%`,
+      title: `Judged ${verdict(s)}: ${s.returnBps >= 0 ? "+" : ""}${(s.returnBps / 100).toFixed(2)}%`,
       detail: `Price moved from ${px(s.entryPrice)} to ${px(s.exitPrice)}`,
       time: s.time,
       tx: s.tx,

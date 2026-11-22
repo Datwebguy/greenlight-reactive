@@ -233,6 +233,7 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
       signer,
       tx,
       outcome,
+      nearError,
     }).catch(() => undefined);
 
   if (decision.action === "hold" || !options.includes(decision.order)) {

@@ -6,7 +6,7 @@ import type { Address } from "viem";
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { greenlightAccountAbi, greenlightVenueAbi } from "@/lib/abi";
 import { addressUrl, chainById, txUrl } from "@/lib/config";
-import { medianDelivery } from "@/lib/cycle";
+import { medianDelivery, verdict } from "@/lib/cycle";
 import { ago, dollars, duration, price, reasonText, short, when } from "@/lib/format";
 import type { AccountView, OwnerView, TimelineItem } from "@/lib/server/account";
 import type { DecisionRow } from "@/lib/server/db";
@@ -161,7 +161,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
       </div>
 
       {/* thinking + chart */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.45fr]">
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_1.45fr]">
         <Decisions decisions={data.decisions} />
         <Card>
           <CardHead title="Limit over time" hint="Every change was decided by the scorer on Reactive Network." />
@@ -172,7 +172,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
       </div>
 
       {/* activity + accounts */}
-      <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
+      <div className="grid items-start gap-6 lg:grid-cols-[1.45fr_1fr]">
         <Activity items={data.timeline} />
         <div className="space-y-6">
           <Speed items={data.timeline} />
@@ -252,6 +252,8 @@ function Approvals({ accounts, isOwner, act, busy }: { accounts: AccountView[]; 
 }
 
 function Decisions({ decisions }: { decisions: Decision[] }) {
+  const [more, setMore] = useState(false);
+  const shown = decisions.slice(0, more ? 12 : 4);
   return (
     <Card>
       <CardHead title="What the agent is thinking" hint="Every decision, including when it chose to wait." />
@@ -259,7 +261,7 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
         <p className="px-6 py-10 text-center text-[14px] text-mute">The agent decides every 10 minutes. Its reasoning appears here.</p>
       ) : (
         <ul className="divide-y divide-line">
-          {decisions.slice(0, 6).map((d) => (
+          {shown.map((d) => (
             <li key={d.createdAt} className="px-6 py-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[14px] font-semibold">
@@ -291,6 +293,11 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
           ))}
         </ul>
       )}
+      {decisions.length > 4 && (
+        <button onClick={() => setMore(!more)} className="w-full border-t border-line py-3 text-[13px] font-semibold text-go-deep hover:bg-paper">
+          {more ? "Show less" : "Show more"}
+        </button>
+      )}
     </Card>
   );
 }
@@ -318,8 +325,8 @@ function describe(t: TimelineItem): { text: string; tone: "go" | "wait" | "stop"
       return { text: t.approved ? "Owner approved a trade" : "Owner rejected a trade", tone: "mute" };
     case "scored":
       return {
-        text: `Trade judged ${t.pnlCents > 0 ? "a win" : t.pnlCents < 0 ? "a loss" : "even"}: ${t.returnBps >= 0 ? "+" : ""}${(t.returnBps / 100).toFixed(2)}% (${t.pnlCents >= 0 ? "+" : "−"}${dollars(Math.abs(t.pnlCents))})`,
-        tone: t.pnlCents > 0 ? "go" : t.pnlCents < 0 ? "stop" : "mute",
+        text: `Trade judged ${verdict(t)}: ${t.returnBps >= 0 ? "+" : ""}${(t.returnBps / 100).toFixed(2)}%${t.pnlCents !== 0 ? ` (${t.pnlCents > 0 ? "+" : "−"}${dollars(Math.abs(t.pnlCents))})` : ""}`,
+        tone: verdict(t) === "a win" ? "go" : verdict(t) === "a loss" ? "stop" : "mute",
       };
     case "limit":
       return {

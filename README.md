@@ -81,8 +81,8 @@ Scroll to the scorecard. Every trade is listed with the AI's own reasoning, the 
 
 ### 3. Open your own account
 
-1. Get a little test ETH on Base Sepolia or Unichain Sepolia (links are on the page).
-2. Open **Account**, press **Connect wallet** and choose MetaMask, Coinbase Wallet or your browser wallet.
+1. Open **Account**, press **Connect wallet** and choose MetaMask, Coinbase Wallet or your browser wallet.
+2. Press **Get free test ETH**. Greenlight sends enough to your wallet on Base Sepolia and Unichain Sepolia within seconds, so there is no faucet to visit.
 3. Set your rules. Every field is yours to choose, and each one is explained in plain words.
 4. Press **Open account**. Greenlight opens the account on each chain you picked and adds 10,000 test dollars.
 

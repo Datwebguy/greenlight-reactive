@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { isDeployed } from "@/lib/config";
 import { ConnectButton } from "./connect";
 import { CreateAccount } from "./create-account";
+import { GetTestEth } from "./get-test-eth";
 import { OwnerDashboard } from "./owner-dashboard";
 
 export function MyAccount() {
@@ -35,16 +36,12 @@ export function MyAccount() {
                 b: "Any browser wallet works, such as MetaMask or Rabby. Your keys never leave it.",
               },
               {
-                t: "Get a little test ETH",
+                t: "Get free test ETH in one tap",
                 b: (
                   <>
-                    A few cents&apos; worth pays for opening the account. Free from the{" "}
+                    Once you connect, press <b>Get free test ETH</b> and it arrives in seconds. You can also use the{" "}
                     <a className="font-medium text-info hover:underline" href="https://portal.cdp.coinbase.com/products/faucet" target="_blank" rel="noreferrer">
                       Base Sepolia faucet
-                    </a>{" "}
-                    or the{" "}
-                    <a className="font-medium text-info hover:underline" href="https://docs.unichain.org/docs/tools/faucets" target="_blank" rel="noreferrer">
-                      Unichain Sepolia faucets
                     </a>
                     .
                   </>
@@ -108,6 +105,7 @@ export function MyAccount() {
         applies these rules to every trade, on every chain you choose.
       </p>
       <div className="mt-8">
+        <GetTestEth wallet={address} />
         <CreateAccount onCreated={() => existing.refetch()} />
       </div>
     </div>

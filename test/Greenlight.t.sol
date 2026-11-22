@@ -210,7 +210,7 @@ contract GreenlightTest is Test {
     /// A model response with the order text inside, signed the way NEAR AI Cloud signs it.
     function signedProof(GreenlightAccount a, GreenlightAccount.Order memory o, uint256 key)
         internal
-        pure
+        view
         returns (GreenlightAccount.Proof memory p)
     {
         string memory text = a.orderText(o);
@@ -511,6 +511,229 @@ contract GreenlightTest is Test {
 
     // ------------------------------------------------ owner controls, across accounts
 
+    function test_expiredOrdersAreRefused() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount.Order memory o = order(a, 0, 10_00);
+        GreenlightAccount.Proof memory p = signedProof(a, o, teeKey);
+        vm.warp(o.deadline + 1);
+        feed.set(1_678_00000000);
+        vm.prank(agent);
+        vm.expectRevert(GreenlightAccount.Expired.selector);
+        a.trade(o, p);
+    }
+
+    function test_ownerCannotApproveAnExpiredRequest() public {
+        GreenlightAccount a = open(policy());
+        assertFalse(agentTrade(a, 0, 500_00)); // over the limit, so it waits
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(owner);
+        vm.expectRevert(GreenlightAccount.Expired.selector);
+        a.approve(0);
+    }
+
+    function test_anOlderUpdateArrivingLateIsIgnored() public {
+        GreenlightAccount a = open(policy());
+        vm.prank(owner);
+        a.freeze();
+        relay(); // seq 2
+        uint64 seq = a.appliedSeq();
+        bytes memory stale = abi.encodeCall(a.sync, (address(0), seq - 1, 250_00, false, Reason.RESYNC));
+        proxy.deliver(address(scorer), address(a), stale);
+        assertEq(a.appliedSeq(), seq);
+        assertTrue(a.scorerFrozen());
+    }
+
+    function test_restartCutsTheLimitToTheFloorAtOnce() public {
+        GreenlightAccount a = open(policy());
+        vm.prank(owner);
+        a.freeze();
+        vm.prank(owner);
+        a.unfreeze(); // before any update from the scorer arrives
+        assertEq(a.limitCents(), 20_00);
+    }
+
+    function test_closeAccountAlsoReturnsTheUpdateBalance() public {
+        GreenlightAccount a = open(policy());
+        vm.deal(address(a), 1 ether);
+        address payable to = payable(makeAddr("home"));
+        vm.prank(owner);
+        a.closeAccount(to);
+        assertEq(to.balance, 1 ether);
+        assertEq(address(a).balance, 0);
+    }
+
+    function test_sellPriceDropBeyondSlippageIsRefused() public {
+        GreenlightAccount a = open(policy());
+        assertTrue(agentTrade(a, 0, 40_00));
+        GreenlightAccount.Order memory o = order(a, 1, 10_00);
+        GreenlightAccount.Proof memory p = signedProof(a, o, teeKey);
+        feed.set(1_650_00000000); // -1.7%, policy allows 1%
+        vm.prank(agent);
+        vm.expectRevert();
+        a.trade(o, p);
+    }
+
+    function test_faucetOncePerDay() public {
+        address me = makeAddr("visitor");
+        venue.faucet(me);
+        vm.expectRevert();
+        venue.faucet(me);
+        vm.warp(block.timestamp + 1 days);
+        venue.faucet(me);
+        assertEq(venue.usd().balanceOf(me), 20_000e6);
+    }
+
+    // ------------------------------------------------ the scorer refuses odd or repeated events
+
+    /// Runs `relay` but keeps the first log with `topic` so a test can send it again later.
+    function relayKeeping(bytes32 topic) internal returns (IReactive.LogRecord memory kept) {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].topics.length == 0) continue;
+            if (logs[i].topics[0] == topic && kept.topic0 == 0) kept = toRecord(logs[i]);
+            if (!sys.isSubscribed(block.chainid, logs[i].emitter, uint256(logs[i].topics[0]))) continue;
+            vm.prank(SYSTEM);
+            scorer.react(toRecord(logs[i]));
+        }
+        deliverAll();
+        vm.recordLogs();
+    }
+
+    function slice(bytes calldata b, uint256 from, uint256 to) external pure returns (bytes memory) {
+        return b[from:to];
+    }
+
+    function replay(IReactive.LogRecord memory r) internal {
+        vm.prank(SYSTEM);
+        scorer.react(r);
+        deliverAll();
+    }
+
+    function test_aRepeatedAccountEventDoesNotLinkTwice() public {
+        vm.recordLogs();
+        vm.prank(owner);
+        GreenlightAccount a = factory.createAccount(agent, teeSigner, MODEL, policy());
+        IReactive.LogRecord memory created = relayKeeping(IGreenlightAccountEvents.AccountCreated.selector);
+        vm.prank(owner);
+        a.freeze();
+        relay();
+        replay(created);
+        assertEq(scorer.accountsOf(owner).length, 1);
+        assertTrue(scorer.bookOf(owner).frozen);
+    }
+
+    function test_anOldPolicyArrivingLateIsIgnored() public {
+        GreenlightAccount a = open(policy());
+        Policy memory p = policy();
+        p.ceilingCents = 300_00;
+        vm.prank(owner);
+        a.setPolicy(p);
+        IReactive.LogRecord memory first = relayKeeping(IGreenlightAccountEvents.PolicySet.selector);
+        p.ceilingCents = 400_00;
+        vm.prank(owner);
+        a.setPolicy(p);
+        relay();
+        replay(first);
+        assertEq(scorer.bookOf(owner).policy.ceilingCents, 400_00);
+    }
+
+    function test_newRulesPullTheLimitInsideTheirRange() public {
+        GreenlightAccount a = open(policy()); // limit 100
+        Policy memory p = policy();
+        p.ceilingCents = 60_00;
+        p.startLimitCents = 30_00;
+        vm.prank(owner);
+        a.setPolicy(p);
+        relay();
+        assertEq(scorer.bookOf(owner).limitCents, 60_00);
+        p.floorCents = 150_00;
+        p.startLimitCents = 150_00;
+        p.ceilingCents = 300_00;
+        vm.prank(owner);
+        a.setPolicy(p);
+        relay();
+        assertEq(scorer.bookOf(owner).limitCents, 150_00);
+    }
+
+    function test_aRepeatedFreezeDoesNotUndoARestart() public {
+        GreenlightAccount a = open(policy());
+        vm.prank(owner);
+        a.freeze();
+        IReactive.LogRecord memory freeze = relayKeeping(IGreenlightAccountEvents.OwnerAction.selector);
+        vm.prank(owner);
+        a.unfreeze();
+        relay();
+        replay(freeze);
+        assertFalse(scorer.bookOf(owner).frozen);
+        assertFalse(a.frozen());
+    }
+
+    function test_tradesWithoutAPriceOrAmountAreNotQueued() public {
+        GreenlightAccount a = open(policy());
+        IReactive.LogRecord memory r;
+        r.chainId = block.chainid;
+        r.contractAddress = address(a);
+        r.topic0 = uint256(IGreenlightAccountEvents.TradeExecuted.selector);
+        r.topic1 = 77;
+        r.data = abi.encode(uint8(0), uint64(10_00), uint256(0), uint64(block.timestamp), true, false);
+        replay(r);
+        r.topic1 = 78;
+        r.data = abi.encode(uint8(0), uint64(0), uint256(1_678e8), uint64(block.timestamp), true, false);
+        replay(r);
+        r.topic1 = 79;
+        r.data = abi.encode(uint8(2), uint64(10_00), uint256(1_678e8), uint64(block.timestamp), true, false);
+        replay(r);
+        assertEq(scorer.queueLength(), 0);
+    }
+
+    function test_badOrLatePriceRoundsAreIgnored() public {
+        GreenlightAccount a = open(policy());
+        agentTrade(a, 0, 20_00);
+        relay();
+        feed.set(1_678_00000000); // a price seen before the trade matures
+        relay();
+        vm.warp(block.timestamp + 11 minutes);
+        IReactive.LogRecord memory r;
+        r.chainId = block.chainid;
+        r.contractAddress = address(feed);
+        r.topic0 = uint256(keccak256("AnswerUpdated(int256,uint256,uint256)"));
+        r.topic1 = uint256(int256(-1));
+        r.data = abi.encode(block.timestamp);
+        replay(r);
+        assertEq(scorer.queueLength(), 1); // a negative price judges nothing
+        uint256 seenPrice = scorer.lastPrice();
+        assertGt(seenPrice, 0);
+        r.topic1 = 1_900e8;
+        r.data = abi.encode(uint256(1)); // a round older than one already seen
+        replay(r);
+        assertEq(scorer.lastPrice(), seenPrice);
+        assertEq(scorer.queueLength(), 1);
+        assertEq(scorer.bookOf(owner).wins, 0);
+    }
+
+    function test_aFlatTradeIsNeitherWinNorLoss() public {
+        GreenlightAccount a = open(policy());
+        agentTrade(a, 0, 20_00);
+        relay();
+        settleAt(1_678_00000000);
+        assertEq(scorer.bookOf(owner).wins, 0);
+        assertEq(scorer.bookOf(owner).losses, 0);
+        assertEq(scorer.queueLength(), 0);
+    }
+
+    function test_aTinyLimitStillGrowsAfterAWin() public {
+        Policy memory p = policy();
+        p.startLimitCents = 2;
+        p.floorCents = 1;
+        p.stepBps = 100; // 1% of 2 cents rounds to nothing
+        p.raiseAfterWins = 1;
+        GreenlightAccount a = open(p);
+        agentTrade(a, 0, 2);
+        relay();
+        settleAt(1_700_00000000);
+        assertEq(scorer.bookOf(owner).limitCents, 3);
+    }
+
     function test_ownerCanSellBackToDollars() public {
         GreenlightAccount a = open(policy());
         assertTrue(agentTrade(a, 0, 40_00));
@@ -750,6 +973,38 @@ contract GreenlightTest is Test {
     // ------------------------------------------------ a real NEAR AI Cloud response
 
     /// A decision returned and signed by NEAR AI Cloud's TEE (Qwen/Qwen3.8-27B), recorded byte for byte.
+    function test_aDecisionForOneAccountDoesNotVerifyOnAnother() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount b = open(policy());
+        GreenlightAccount.Order memory o = order(a, 0, 10_00);
+        GreenlightAccount.Proof memory p = signedProof(a, o, teeKey);
+        assertTrue(a.isVerified(o, p));
+        assertFalse(b.isVerified(o, p)); // same nonce, same signer, different account
+    }
+
+    function test_anOrderQuotedInsideOtherTextIsNotVerified() public {
+        GreenlightAccount a = open(policy());
+        GreenlightAccount.Order memory o = order(a, 0, 10_00);
+        GreenlightAccount.Proof memory p = signedProof(a, o, teeKey);
+        // the same signed bytes, but pointed at a copy of the order that is not its own JSON string
+        bytes memory text = bytes(a.orderText(o));
+        bytes memory head = bytes('{"choices":[{"message":{"content":"{\\"reason\\":\\"never run ');
+        p.response = bytes.concat(head, text, bytes('\\"}"}}]}'));
+        p.orderOffset = head.length; // the order really is there, followed by \", but not opened by \"
+        assertEq(keccak256(this.slice(p.response, head.length, head.length + text.length)), keccak256(text));
+        assertFalse(a.isVerified(o, p));
+        p.orderOffset = type(uint256).max; // an offset past the end is refused, not a crash
+        assertFalse(a.isVerified(o, p));
+    }
+
+    function test_absurdLimitsAreRefused() public {
+        Policy memory p = policy();
+        p.ceilingCents = type(uint64).max;
+        vm.prank(owner);
+        vm.expectRevert();
+        factory.createAccount(agent, teeSigner, MODEL, p);
+    }
+
     function test_realSignedModelResponseVerifiesOnChain() public {
         string memory json = vm.readFile("test/fixtures/near-decision.json");
         address signer = vm.parseJsonAddress(json, ".signingAddress");

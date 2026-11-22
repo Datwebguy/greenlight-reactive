@@ -30,9 +30,12 @@ library Reason {
 library PolicyRules {
     error InvalidPolicy();
 
+    /// @dev $10 billion a day: far above any real limit, and small enough that no raise can overflow.
+    uint64 internal constant MAX_LIMIT_CENTS = 1e12;
+
     function check(Policy memory p) internal pure {
         if (
-            p.ceilingCents == 0 || p.floorCents > p.startLimitCents || p.startLimitCents > p.ceilingCents
+            p.ceilingCents == 0 || p.ceilingCents > MAX_LIMIT_CENTS || p.floorCents > p.startLimitCents || p.startLimitCents > p.ceilingCents
                 || p.scoreWindow == 0 || p.maxSlippageBps > 2_000 || p.stepBps == 0 || p.stepBps >= 10_000
                 || p.raiseAfterWins == 0 || p.freezeAfterLosses == 0
         ) revert InvalidPolicy();

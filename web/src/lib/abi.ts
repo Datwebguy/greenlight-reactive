@@ -200,6 +200,22 @@ export const greenlightAccountAbi = [
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "length",
+        "type": "uint256"
+      }
+    ],
+    "name": "StringsInsufficientHexLength",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "TransferFailed",
     "type": "error"
@@ -914,7 +930,7 @@ export const greenlightAccountAbi = [
         "type": "string"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {

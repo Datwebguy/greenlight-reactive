@@ -18,6 +18,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
   const [deposit, setDeposit] = useState("0.002");
   const [agent, setAgent] = useState<string>(hostedAgent ?? "");
   const [status, setStatus] = useState<string | null>(null);
+  const [opened, setOpened] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
@@ -42,6 +43,10 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
     try {
       for (const c of selected) {
         const id = c.chain.id as 84532 | 1301;
+        if (opened[id]) continue; // already done on an earlier try
+        const ok = (r: { status: string }, what: string) => {
+          if (r.status !== "success") throw new Error(`${what} on ${c.chain.name} did not go through. Nothing was charged beyond the network fee.`);
+        };
         setStatus(`Opening your account on ${c.chain.name}…`);
         await switchChainAsync({ chainId: id });
         const hash = await writeContractAsync({
@@ -53,16 +58,19 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
           value: parseEther(deposit || "0"),
         });
         const receipt = await clients[id]!.waitForTransactionReceipt({ hash });
+        ok(receipt, "Opening the account");
         let account: Address | undefined;
         for (const log of receipt.logs) {
           try {
             const ev = decodeEventLog({ abi: greenlightFactoryAbi, data: log.data, topics: log.topics });
-            if (ev.eventName === "AccountCreated") account = ev.args.account;
+            if (ev.eventName === "AccountCreated" && log.address.toLowerCase() === c.factory!.toLowerCase()) account = ev.args.account;
           } catch {
             // other logs
           }
         }
-        if (account && c.venue) {
+        if (!account) throw new Error(`The account on ${c.chain.name} could not be confirmed. Please refresh the page.`);
+        setOpened((o) => ({ ...o, [id]: true }));
+        if (c.venue) {
           setStatus(`Adding test dollars on ${c.chain.name}…`);
           const f = await writeContractAsync({
             chainId: id,
@@ -71,7 +79,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
             functionName: "faucet",
             args: [account],
           });
-          await clients[id]!.waitForTransactionReceipt({ hash: f });
+          ok(await clients[id]!.waitForTransactionReceipt({ hash: f }), "Adding test dollars");
         }
       }
       setStatus("Done. The scorer on Reactive Network is linking your accounts.");
@@ -102,6 +110,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
                 key={c.chain.id}
                 type="button"
                 disabled={!c.factory}
+                aria-pressed={Boolean(chains[c.chain.id] && c.factory)}
                 onClick={() => setChains({ ...chains, [c.chain.id]: !chains[c.chain.id] })}
                 className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-medium transition ${
                   chains[c.chain.id] && c.factory ? "border-go bg-go-soft text-go-deep" : "border-line-2 text-ink-2"

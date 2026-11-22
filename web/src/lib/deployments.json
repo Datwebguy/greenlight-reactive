@@ -17,20 +17,26 @@
       },
       "previousFactories": [
         {
+          "address": "0x0561390cddd091e25780cf27eae868215c02e1ff",
+          "tx": "0xd54c65c884b8e3321c9e6030df8cb3972c1f16bcca6bce4f01be550fac243dc2",
+          "block": 68484198
+        },
+        {
           "address": "0x132cd04d204902c30203d20a24788c41f72ec203",
           "tx": "0x3c06540e9ee0d8487b543eb8fe78296e7c348dacab66e57ad9ff6009481116af",
           "block": 68465002
         }
       ],
       "previousRegisterTxs": [
+        "0x287c0491b350455cd5e954cfa3a3a478ac37800e86ccb6697db9db40a6e9adfe",
         "0xe334dabc9ab290569256b915f5eddd98d81db3060e7f1d8f00ae4030a0dbb19a"
       ],
       "factory": {
-        "address": "0x0561390cddd091e25780cf27eae868215c02e1ff",
-        "tx": "0xd54c65c884b8e3321c9e6030df8cb3972c1f16bcca6bce4f01be550fac243dc2",
-        "block": 68484198
+        "address": "0xb7ea53e2077cbf35fed6db5535423a9641fbb612",
+        "tx": "0xfd29564b480d991c0a44df7b32eb7afba045a2402bcf2e4e49ab61b6259687ae",
+        "block": 68485617
       },
-      "registerTx": "0x287c0491b350455cd5e954cfa3a3a478ac37800e86ccb6697db9db40a6e9adfe"
+      "registerTx": "0xdfb1057622238d427f09e10e981af90c32723fc3ffaece18ed7a9e89163db03f"
     },
     "84532": {
       "name": "Base Sepolia",
@@ -41,20 +47,26 @@
       },
       "previousFactories": [
         {
+          "address": "0x0466d0db9782742e5a799b178ead73f4febf6a0b",
+          "tx": "0x9112e3dfffe229caed407e0340dc3789bf4b1cd21dfc1b4fbe1310915c90e40f",
+          "block": 62073767
+        },
+        {
           "address": "0xd6f04d7fff39a234af3d29b9ac92f8016ed451c7",
           "tx": "0xf0869717679b55bb36825ae8a0d3d279a5e72f2fbb9d3f60be70e1609f549560",
           "block": 61977794
         }
       ],
       "previousRegisterTxs": [
+        "0x646443538834a84a358bf57e4e5c76d225eb807fcd3b6010cccdf751b5c5dfd5",
         "0xe87a2b5224594042d597a2bbe6429698c566a19eb518efdb81e78e1e7fa710d6"
       ],
       "factory": {
-        "address": "0x0466d0db9782742e5a799b178ead73f4febf6a0b",
-        "tx": "0x9112e3dfffe229caed407e0340dc3789bf4b1cd21dfc1b4fbe1310915c90e40f",
-        "block": 62073767
+        "address": "0xc7872882f178eea3c137b6715770b1c62deedc0f",
+        "tx": "0x61df88bb9ea5be4853174fc304d0b0394af24acbf3b1fd9a3be498b0226e88b2",
+        "block": 62080863
       },
-      "registerTx": "0x646443538834a84a358bf57e4e5c76d225eb807fcd3b6010cccdf751b5c5dfd5"
+      "registerTx": "0x708fcbb8049092378984553157aa61d46df54ba7894c099ebef4838a41c7a70d"
     }
   }
 }

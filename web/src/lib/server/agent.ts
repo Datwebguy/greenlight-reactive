@@ -146,7 +146,13 @@ export async function runAgent(budgetMs = 240_000): Promise<TickResult[]> {
       skip("decided recently");
       continue;
     }
-    const gas = await clientFor(a.chainId).getBalance({ address: me.address });
+    const gas = await clientFor(a.chainId)
+      .getBalance({ address: me.address })
+      .catch(() => null);
+    if (gas === null) {
+      skip("network busy, will retry");
+      continue;
+    }
     if (gas < MIN_GAS_WEI) {
       skip("agent needs gas");
       continue;
@@ -171,6 +177,17 @@ export async function runAgent(budgetMs = 240_000): Promise<TickResult[]> {
   return results;
 }
 
+/** Side, amount and price from an order text, read from the end so every format version works. */
+function orderParts(text: string) {
+  const p = text.split(":");
+  return { side: p.at(-5), amount: p.at(-4)!, ref: p.at(-3)! };
+}
+
+/** The answer is one of the offered orders, and its action agrees with the order's side. */
+function matches(d: Decision, options: string[]): boolean {
+  return options.includes(d.order) && orderParts(d.order).side === d.action;
+}
+
 async function decideAndTrade(view: AccountView, history: { time: number; price: number }[]): Promise<TickResult> {
   const me = agentAccount()!;
   const net = chainById(view.chainId)!;
@@ -183,9 +200,20 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
   const deadline = Math.floor(Date.now() / 1000) + ORDER_TTL_S;
   const sizes = [...new Set([0.25, 0.5, 1].map((f) => Math.floor(view.remainingCents * f)))].filter((c) => c >= 100);
   const ethValueCents = Math.floor(view.eth * priceCents);
-  const options: string[] = [];
-  for (const c of sizes) if (view.usd * 100 >= c) options.push(`GL1:buy:${c}:${priceCents}:${nonce}:${deadline}`);
-  for (const c of sizes) if (ethValueCents >= c) options.push(`GL1:sell:${c}:${priceCents}:${nonce}:${deadline}`);
+  // The account itself says how each order must be written, so every account version is served correctly (newer ones
+  // name their chain and address, so a signed decision only ever authorises that one account).
+  const wanted: { side: 0 | 1; cents: number }[] = [];
+  for (const c of sizes) if (view.usd * 100 >= c) wanted.push({ side: 0, cents: c });
+  for (const c of sizes) if (ethValueCents >= c) wanted.push({ side: 1, cents: c });
+  const options = (await client.multicall({
+    allowFailure: false,
+    contracts: wanted.map((w) => ({
+      address: view.address,
+      abi: greenlightAccountAbi,
+      functionName: "orderText",
+      args: [{ side: w.side, amountCents: BigInt(w.cents), refPriceCents: BigInt(priceCents), nonce: BigInt(nonce), deadline: BigInt(deadline) }],
+    })),
+  })) as string[];
 
   const { system, user } = buildPrompt({ account: view, book, history, options });
   const base = {
@@ -210,12 +238,14 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
     latencyMs = near.latencyMs;
     chatId = near.chatId;
     proof = { requestHash: sha256Hex(near.requestBytes), response: "0x", orderOffset: 0n, signature: "0x" };
-    if (decision.action !== "hold" && options.includes(decision.order)) {
+    if (decision.action !== "hold" && matches(decision, options)) {
       const sig = await nearSignature(near.chatId);
       signer = sig.signingAddress;
       const raw = near.responseBytes;
+      // The order must appear as its own JSON string in the answer, opened and closed by an escaped quote.
       const contentAt = raw.indexOf('"content":"');
-      const at = contentAt < 0 ? -1 : raw.indexOf(decision.order, contentAt);
+      const found = contentAt < 0 ? -1 : raw.indexOf(`\\"${decision.order}\\"`, contentAt);
+      const at = found < 0 ? -1 : found + 2;
       proof = {
         requestHash: sha256Hex(near.requestBytes),
         response: `0x${raw.toString("hex")}`,
@@ -249,13 +279,13 @@ async function decideAndTrade(view: AccountView, history: { time: number; price:
       nearError,
     }).catch(() => undefined);
 
-  if (decision.action === "hold" || !options.includes(decision.order)) {
+  if (decision.action === "hold" || !matches(decision, options)) {
     const outcome = decision.action === "hold" ? "held" : "invalid order";
     await record(outcome, null);
     return { chainId: view.chainId, account: view.address, outcome, action: decision.action, source, nearError, latencyMs, reason: decision.reason };
   }
 
-  const [, side, amount, ref] = decision.order.split(":");
+  const { side, amount, ref } = orderParts(decision.order);
   const order = {
     side: side === "buy" ? 0 : 1,
     amountCents: BigInt(amount),

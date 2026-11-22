@@ -46,11 +46,14 @@ export function policyFields(p?: PolicyView): Field[] {
 /** Plain-language problems with the rules, and the policy to sign when there are none. */
 export function readPolicy(fields: Field[]) {
   const v = Object.fromEntries(fields.map((f) => [f.key, Number(f.value)]));
-  const cents = (x: number) => BigInt(Math.round(x * 100));
+  const cents = (x: number) => (Number.isFinite(x) && x >= 0 && x <= 1e11 ? BigInt(Math.round(x * 100)) : 0n);
   const problems: string[] = [];
+  if (Object.values(v).some((x) => !Number.isFinite(x) || x < 0)) problems.push("Every rule needs a number of zero or more.");
+  if (v.ceiling > 10_000_000_000) problems.push("The highest limit can be at most $10 billion a day.");
+  if (!Number.isInteger(v.wins) || !Number.isInteger(v.losses)) problems.push("Streaks are counted in whole trades.");
   if (!(v.ceiling > 0)) problems.push("The highest limit must be above zero.");
   if (v.floor > v.start || v.start > v.ceiling) problems.push("The starting limit must sit between the lowest and the highest.");
-  if (!(v.window > 0)) problems.push("The judging time must be at least a minute.");
+  if (!(v.window >= 1)) problems.push("The judging time must be at least a minute.");
   if (!(v.step > 0 && v.step < 100)) problems.push("Each change must be between 0% and 100%.");
   if (!(v.wins >= 1 && v.wins <= 255) || !(v.losses >= 1 && v.losses <= 255)) problems.push("Streak lengths must be between 1 and 255.");
   if (!(v.slippage >= 0 && v.slippage <= 20)) problems.push("Price movement must be between 0% and 20%.");

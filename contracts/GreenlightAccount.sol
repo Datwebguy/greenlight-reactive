@@ -141,13 +141,15 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
     /// @notice True when `proof` is a response signed by the attested model and contains exactly this order.
     function isVerified(Order calldata order, Proof calldata proof) public view returns (bool) {
         bytes memory text = bytes(orderText(order));
+        bytes calldata response = proof.response;
         uint256 start = proof.orderOffset;
+        if (start < 2 || start > response.length || text.length >= response.length - start) return false;
         uint256 end = start + text.length;
-        // The order must be followed by the closing quote of the answer's JSON string (escaped as \").
-        if (end >= proof.response.length || proof.response[end] != 0x5c) return false;
-        if (keccak256(proof.response[start:end]) != keccak256(text)) return false;
+        // The order must be a whole JSON string value of its own inside the answer: opened by \" and closed by \".
+        if (response[start - 2] != 0x5c || response[start - 1] != 0x22 || response[end] != 0x5c) return false;
+        if (keccak256(response[start:end]) != keccak256(text)) return false;
         // It must sit in the model's final answer, not in its reasoning, which follows the answer.
-        if (!_contains(proof.response[:start], '"content":"') || _contains(proof.response[:start], '"reasoning')) {
+        if (!_contains(response[:start], '"content":"') || _contains(response[:start], '"reasoning')) {
             return false;
         }
         bytes memory signed = abi.encodePacked(
@@ -162,10 +164,15 @@ contract GreenlightAccount is AbstractCallback, IGreenlightAccountEvents, IGreen
         return err == ECDSA.RecoverError.NoError && signer == teeSigner && signer != address(0);
     }
 
-    /// @notice The exact text the model must write for this order, e.g. `GL1:buy:2500:167812:7:1763700000`.
-    function orderText(Order calldata order) public pure returns (string memory) {
+    /// @notice The exact text the model must write for this order. It names the chain and this account, so a decision
+    /// made for one account can never be used on another: `GL2:84532:0xabc…:buy:2500:167812:7:1763700000`.
+    function orderText(Order calldata order) public view returns (string memory) {
         return string.concat(
-            "GL1:",
+            "GL2:",
+            Strings.toString(block.chainid),
+            ":",
+            Strings.toHexString(address(this)),
+            ":",
             order.side == 0 ? "buy" : "sell",
             ":",
             Strings.toString(order.amountCents),

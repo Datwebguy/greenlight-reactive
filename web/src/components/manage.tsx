@@ -3,7 +3,8 @@
 import { ArrowDownToLine, Bot, DoorOpen, Pause, Play, Repeat, SlidersHorizontal } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { parseUnits, zeroAddress, type Address } from "viem";
+import { erc20Abi, parseUnits, zeroAddress, type Address } from "viem";
+import { usePublicClient } from "wagmi";
 import { greenlightAccountAbi } from "@/lib/abi";
 import { hostedAgent } from "@/lib/config";
 import type { AccountView } from "@/lib/server/account";
@@ -221,10 +222,15 @@ function Withdraw({ owner, accounts, act, busy }: { owner: Address; accounts: Ac
 
   let wanted = 0n;
   let problem: string | null = null;
-  try {
-    wanted = amount ? parseUnits(amount, meta.decimals) : 0n;
-  } catch {
-    problem = "Enter a number.";
+  const decimalsUsed = amount.split(".")[1]?.length ?? 0;
+  if (amount && !/^\d*\.?\d*$/.test(amount)) problem = "Enter an amount of zero or more.";
+  else if (decimalsUsed > meta.decimals) problem = `Use at most ${meta.decimals} decimal places.`;
+  else {
+    try {
+      wanted = amount ? parseUnits(amount, meta.decimals) : 0n;
+    } catch {
+      problem = "Enter a number.";
+    }
   }
   if (!problem && wanted > available) problem = "That is more than the account holds.";
 
@@ -303,6 +309,7 @@ function Rules({ accounts, act, busy, onDone }: { accounts: AccountView[]; act: 
 
 function Close({ owner, accounts, frozen, act, busy }: { owner: Address; accounts: AccountView[]; frozen: boolean; act: Act; busy: string | null }) {
   const [step, setStep] = useState<string | null>(null);
+  const clients = { 84532: usePublicClient({ chainId: 84532 }), 1301: usePublicClient({ chainId: 1301 }) };
 
   async function closeAll() {
     let stopped = frozen;
@@ -314,14 +321,22 @@ function Close({ owner, accounts, frozen, act, busy }: { owner: Address; account
         stopped = true;
         continue;
       }
-      // Accounts opened before one-step closing: the same steps, one at a time.
-      const steps: { functionName: string; args?: unknown[] }[] = [];
-      if (!stopped) steps.push({ functionName: "freeze" });
-      if (a.agent !== zeroAddress) steps.push({ functionName: "setAgent", args: [zeroAddress] });
-      if (BigInt(a.raw.usd) > 0n) steps.push({ functionName: "withdraw", args: [a.tokens.usd, owner, BigInt(a.raw.usd)] });
-      if (BigInt(a.raw.eth) > 0n) steps.push({ functionName: "withdraw", args: [a.tokens.eth, owner, BigInt(a.raw.eth)] });
-      if (BigInt(a.raw.gas) > 0n) steps.push({ functionName: "withdrawNative", args: [owner, BigInt(a.raw.gas)] });
-      for (const s of steps) {
+      // Accounts opened before one-step closing: stop the agent first, then empty the account by its live balances.
+      const stops: { functionName: string; args?: unknown[] }[] = [];
+      if (!stopped) stops.push({ functionName: "freeze" });
+      if (a.agent !== zeroAddress) stops.push({ functionName: "setAgent", args: [zeroAddress] });
+      for (const s of stops) {
+        if (!(await act("close", a.chainId, { ...base, ...s } as never))) return setStep(null);
+      }
+      const client = clients[a.chainId as 84532 | 1301];
+      if (!client) return setStep(null);
+      const bal = (token: Address) => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [a.address] });
+      const [usd, eth, gas] = await Promise.all([bal(a.tokens.usd), bal(a.tokens.eth), client.getBalance({ address: a.address })]);
+      const sends: { functionName: string; args?: unknown[] }[] = [];
+      if (usd > 0n) sends.push({ functionName: "withdraw", args: [a.tokens.usd, owner, usd] });
+      if (eth > 0n) sends.push({ functionName: "withdraw", args: [a.tokens.eth, owner, eth] });
+      if (gas > 0n) sends.push({ functionName: "withdrawNative", args: [owner, gas] });
+      for (const s of sends) {
         if (!(await act("close", a.chainId, { ...base, ...s } as never))) return setStep(null);
       }
       stopped = true;

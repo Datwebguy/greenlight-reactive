@@ -73,7 +73,8 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
   const { act, busy, error: actError } = useAct();
 
   if (isLoading) return <Skeleton />;
-  if (error || !data) return <Empty text="This account could not be loaded right now. Please try again in a moment." />;
+  // Keep the last good view (and the owner's controls) through a failed refresh.
+  if (!data) return <Empty text="This account could not be loaded right now. Please try again in a moment." />;
   if (data.accounts.length === 0) return <Empty text="This wallet has not opened a Greenlight account yet." />;
 
   const main = data.accounts[0];
@@ -118,7 +119,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
                 // The owner's own freeze is lifted chain by chain; a freeze from the scorer needs one unfreeze anywhere.
                 const targets = data.accounts.filter((a) => a.ownerFrozen);
                 for (const a of targets.length ? targets : [main]) {
-                  await act("unfreeze", a.chainId, { address: a.address, abi: greenlightAccountAbi, functionName: "unfreeze" });
+                  if (!(await act("unfreeze", a.chainId, { address: a.address, abi: greenlightAccountAbi, functionName: "unfreeze" }))) return;
                 }
               }}
             >
@@ -137,6 +138,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
           owner restarts it, and it will restart at its lowest limit.
         </div>
       )}
+      {error && <div className="rounded-2xl bg-wait-soft px-5 py-3 text-[14px] text-ink">Showing the last update while we reconnect. Your controls still work.</div>}
       {actError && <div className="rounded-2xl bg-stop-soft px-5 py-3 text-[14px] text-stop">{actError}</div>}
 
       {/* limit + approvals */}

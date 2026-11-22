@@ -1,7 +1,6 @@
 "use client";
 
 import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { short } from "@/lib/format";
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
@@ -12,10 +11,13 @@ export function ConnectButton() {
     return (
       <button
         onClick={() => disconnect()}
-        title="Disconnect"
-        className="num rounded-xl border border-line-2 bg-card px-3 py-2 text-[13px] font-medium text-ink hover:bg-paper"
+        title={`${address} · click to disconnect`}
+        className="num rounded-full border border-line-2 bg-card px-3.5 py-2 text-[13px] font-medium text-ink hover:border-ink/30"
       >
-        {short(address)}
+        <span className="inline-flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-go live-dot" />
+          Connected
+        </span>
       </button>
     );
   }
@@ -24,7 +26,7 @@ export function ConnectButton() {
     <button
       onClick={() => injected && connect({ connector: injected })}
       disabled={!injected || isPending}
-      className="whitespace-nowrap rounded-xl bg-ink px-3 py-2 text-[13px] font-semibold text-white hover:bg-ink-2 disabled:opacity-50 sm:px-3.5"
+      className="whitespace-nowrap rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-paper hover:opacity-90 disabled:opacity-50 sm:px-3.5"
     >
       {isPending ? (
         "Connecting…"

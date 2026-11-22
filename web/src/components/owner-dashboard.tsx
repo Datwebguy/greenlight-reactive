@@ -7,12 +7,14 @@ import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "w
 import { greenlightAccountAbi, greenlightVenueAbi } from "@/lib/abi";
 import { addressUrl, chainById, txUrl } from "@/lib/config";
 import { medianDelivery, verdict } from "@/lib/cycle";
-import { ago, dollars, duration, price, reasonText, short, when } from "@/lib/format";
+import { ago, dollars, duration, price, reasonText, when } from "@/lib/format";
+import { agentName } from "@/lib/names";
 import type { AccountView, OwnerView, TimelineItem } from "@/lib/server/account";
 import type { DecisionRow } from "@/lib/server/db";
 import { ChainChip, chainLabel } from "./chain-chip";
 import { LimitChart } from "./limit-chart";
-import { LimitMeter } from "./limit-meter";
+import { Gauge } from "./gauge";
+import { Ticker } from "./motion";
 import { Button, Card, CardHead } from "./ui";
 
 type Decision = DecisionRow & { createdAt: string };
@@ -67,14 +69,13 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
 
   if (isLoading) return <Skeleton />;
   if (error || !data) return <Empty text="This account could not be loaded right now. Please try again in a moment." />;
-  if (data.accounts.length === 0) return <Empty text={`${short(owner)} has not opened a Greenlight account yet.`} />;
+  if (data.accounts.length === 0) return <Empty text="This wallet has not opened a Greenlight account yet." />;
 
   const main = data.accounts[0];
   const policy = main.policy;
   const book = data.book;
   const frozen = data.accounts.some((a) => a.frozen) || Boolean(book?.frozen);
   const limitCents = book?.limitCents ?? main.limitCents;
-  const usedCents = Math.max(0, main.limitCents - main.remainingCents);
   const lastFreeze = [...data.timeline].reverse().find((t): t is Extract<TimelineItem, { kind: "limit" }> => t.kind === "limit" && t.frozen);
   const limitPoints = data.timeline
     .filter((t): t is Extract<TimelineItem, { kind: "limit" }> => t.kind === "limit")
@@ -93,10 +94,10 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
             </span>
           </div>
           <h1 className="mt-1 text-[28px] font-semibold tracking-tight">
-            {isOwner ? "Your agent" : process.env.NEXT_PUBLIC_DEMO_OWNER?.toLowerCase() === owner.toLowerCase() ? "Demo agent" : "Agent"}
+            {isOwner ? `Your agent, ${agentName(owner)}` : agentName(owner)}
           </h1>
           <p className="text-[14px] text-ink-2">
-            Owned by <span className="num">{short(owner)}</span> · trading ETH on{" "}
+            Trading ETH on{" "}
             {[...new Set(data.accounts.map((a) => chainLabel(a.chainId)))].join(" and ")}
           </p>
         </div>
@@ -132,39 +133,35 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
       {/* limit + approvals */}
       <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
         <Card className="p-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="text-[13px] text-mute">Daily limit it has earned</div>
-              <div className="num mt-1 text-[44px] font-semibold leading-none tracking-tight">{dollars(limitCents)}</div>
-            </div>
-            <div className="text-right text-[13px] text-ink-2">
-              Started at {dollars(policy.startLimitCents)}
-              <br />
-              Resets at midnight UTC
-            </div>
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+            <Gauge limitCents={limitCents} floorCents={policy.floorCents} ceilingCents={policy.ceilingCents} frozen={frozen} size={210}>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-mute">Earned limit</div>
+                <Ticker value={limitCents / 100} format={(n) => `$${n.toFixed(2)}`} className="num block text-[32px] font-semibold tracking-tight" />
+                <div className="text-[11px] text-mute">per day</div>
+              </div>
+            </Gauge>
+            <dl className="grid w-full flex-1 grid-cols-2 gap-3">
+              <Fact label={data.accounts.length > 1 ? "Left today, all chains" : "Left today"} value={dollars(data.accounts.reduce((s, a) => s + (a.frozen ? 0 : a.remainingCents), 0))} sub="Resets at midnight UTC" />
+              <Fact
+                label="Result so far"
+                value={<span className={pnl < 0 ? "text-stop" : "text-go-deep"}>{`${pnl < 0 ? "−" : "+"}${dollars(Math.abs(pnl))}`}</span>}
+                sub={data.price ? `ETH ${price(data.price.value)}` : undefined}
+              />
+              <Fact
+                label="Record"
+                value={`${book?.wins ?? 0} won · ${book?.losses ?? 0} lost`}
+                sub={
+                  book?.winStreak
+                    ? `${book.winStreak} of ${policy.raiseAfterWins} wins to a raise`
+                    : book?.lossStreak
+                      ? `${book.lossStreak} of ${policy.freezeAfterLosses} losses to a freeze`
+                      : `Judged ${duration(policy.scoreWindow)} after each trade`
+                }
+              />
+              <Fact label="Range" value={`${dollars(policy.floorCents)} to ${dollars(policy.ceilingCents)}`} sub={`Started at ${dollars(policy.startLimitCents)}`} />
+            </dl>
           </div>
-          <div className="mt-6">
-            <LimitMeter size="lg" limitCents={limitCents} floorCents={policy.floorCents} ceilingCents={policy.ceilingCents} usedCents={usedCents} frozen={frozen} />
-          </div>
-          <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-5 sm:grid-cols-3">
-            <Fact label="Left today" value={dollars(data.accounts.reduce((s, a) => s + (a.frozen ? 0 : a.remainingCents), 0))} />
-            <Fact
-              label="Record"
-              value={`${book?.wins ?? 0} won · ${book?.losses ?? 0} lost`}
-              sub={
-                book?.winStreak
-                  ? `${book.winStreak} of ${policy.raiseAfterWins} wins to a raise`
-                  : book?.lossStreak
-                    ? `${book.lossStreak} of ${policy.freezeAfterLosses} losses to a freeze`
-                    : `Judged ${duration(policy.scoreWindow)} after each trade`
-              }
-            />
-            <Fact
-              label="Result so far"
-              value={<span className={pnl < 0 ? "text-stop" : "text-go-deep"}>{`${pnl < 0 ? "−" : "+"}${dollars(Math.abs(pnl))}`}</span>}
-              sub={data.price ? `ETH ${price(data.price.value)}` : undefined}
-            />
-          </dl>
         </Card>
         <Approvals accounts={data.accounts} isOwner={isOwner} act={act} busy={busy} />
       </div>
@@ -194,7 +191,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
 
 function Fact({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 rounded-xl border border-line bg-card px-3.5 py-3">
       <dt className="text-[12px] text-mute">{label}</dt>
       <dd className="num mt-1 text-[17px] font-semibold leading-tight">{value}</dd>
       {sub && <dd className="mt-1 text-[12px] leading-snug text-mute">{sub}</dd>}

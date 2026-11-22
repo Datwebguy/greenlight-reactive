@@ -1,56 +1,231 @@
 @import "tailwindcss";
 
-@theme {
-  --color-paper: #f7f7f4;
-  --color-card: #ffffff;
-  --color-ink: #10151c;
-  --color-ink-2: #3d4652;
-  --color-mute: #6b7480;
-  --color-line: #e6e6e0;
-  --color-line-2: #d6d6cf;
-  --color-go: #138a4a;
-  --color-go-soft: #e6f4ec;
-  --color-go-deep: #0b5e32;
-  --color-wait: #b26b00;
-  --color-wait-soft: #fdf3e1;
-  --color-stop: #c2362b;
-  --color-stop-soft: #fbe9e7;
-  --color-info: #2f5fd0;
-  --color-info-soft: #e9eefb;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --shadow-card: 0 1px 2px rgb(16 21 28 / 0.04), 0 1px 1px rgb(16 21 28 / 0.03);
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Colour tokens. Every component uses these names, so light and dark switch together. */
+:root {
+  --paper: #eef3f1;
+  --a1: rgb(255 255 255 / 0.95);
+  --a2: rgb(187 247 208 / 0.9);
+  --a3: rgb(220 252 231 / 0.9);
+  --a4: rgb(226 232 230 / 0.9);
+  --a5: rgb(167 243 208 / 0.75);
+  --mist: rgb(255 255 255 / 0.85);
+  --line-flow-a: rgb(22 163 74 / 0.5);
+  --line-flow-b: rgb(22 163 74 / 0.5);
+  --aurora-opacity: 0.55;
+  --card: rgb(255 255 255 / 0.78);
+  --card-solid: #ffffff;
+  --ink: #0d1512;
+  --ink-2: #3a4742;
+  --mute: #6a7772;
+  --line: rgb(13 21 18 / 0.08);
+  --line-2: rgb(13 21 18 / 0.16);
+  --go: #16a34a;
+  --go-2: #16a34a;
+  --go-soft: rgb(22 163 74 / 0.1);
+  --go-deep: #15803d;
+  --wait: #b26b00;
+  --wait-soft: rgb(217 140 20 / 0.12);
+  --stop: #d23b2f;
+  --stop-soft: rgb(210 59 47 / 0.1);
+  --info: #2f5fd0;
+  --info-soft: rgb(47 95 208 / 0.1);
+  --base: #0052ff;
+  --base-soft: rgb(0 82 255 / 0.08);
+  --uni: #f50db4;
+  --uni-soft: rgb(245 13 180 / 0.08);
+  --glow: rgb(22 163 74 / 0.2);
+  --shadow: 0 1px 2px rgb(13 21 18 / 0.04), 0 10px 30px -12px rgb(13 21 18 / 0.14);
+  color-scheme: light;
 }
 
-:root {
-  color-scheme: light;
+.dark {
+  --paper: #060a08;
+  --a1: rgb(34 197 94 / 0.45);
+  --a2: rgb(226 240 235 / 0.22);
+  --a3: rgb(22 101 52 / 0.6);
+  --a4: rgb(240 253 244 / 0.16);
+  --a5: rgb(74 222 128 / 0.35);
+  --mist: rgb(226 240 235 / 0.14);
+  --line-flow-a: rgb(74 222 128 / 0.55);
+  --line-flow-b: rgb(74 222 128 / 0.55);
+  --aurora-opacity: 0.75;
+  --card: rgb(18 25 23 / 0.72);
+  --card-solid: #0f1513;
+  --ink: #ecf3ef;
+  --ink-2: #b4c2bc;
+  --mute: #7d8b85;
+  --line: rgb(236 243 239 / 0.08);
+  --line-2: rgb(236 243 239 / 0.16);
+  --go: #4ade80;
+  --go-2: #4ade80;
+  --go-soft: rgb(74 222 128 / 0.12);
+  --go-deep: #86efac;
+  --wait: #f2b13c;
+  --wait-soft: rgb(242 177 60 / 0.12);
+  --stop: #ff6b5e;
+  --stop-soft: rgb(255 107 94 / 0.12);
+  --info: #7aa2ff;
+  --info-soft: rgb(122 162 255 / 0.12);
+  --base: #5b8cff;
+  --base-soft: rgb(91 140 255 / 0.12);
+  --uni: #ff5fcf;
+  --uni-soft: rgb(255 95 207 / 0.12);
+  --glow: rgb(74 222 128 / 0.22);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -16px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-mute: var(--mute);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-go: var(--go);
+  --color-go-2: var(--go-2);
+  --color-go-soft: var(--go-soft);
+  --color-go-deep: var(--go-deep);
+  --color-wait: var(--wait);
+  --color-wait-soft: var(--wait-soft);
+  --color-stop: var(--stop);
+  --color-stop-soft: var(--stop-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-base: var(--base);
+  --color-base-soft: var(--base-soft);
+  --color-uni: var(--uni);
+  --color-uni-soft: var(--uni-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --shadow-card: var(--shadow);
+  --animate-marquee: marquee 60s linear infinite;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
 }
 
 html,
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--paper);
+  color: var(--ink);
 }
 
 body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
+  transition: background-color 0.3s ease;
 }
 
 .num {
   font-variant-numeric: tabular-nums;
 }
 
-@keyframes pulse-dot {
+/* Glass surface used by cards. */
+.glass {
+  background: var(--card);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+
+
+/* Aurora: soft colour bands drifting slowly behind the whole page. */
+.aurora {
+  background-image:
+    repeating-linear-gradient(100deg, var(--mist) 0%, var(--mist) 7%, transparent 10%, transparent 12%, var(--mist) 16%),
+    repeating-linear-gradient(100deg, var(--a1) 10%, var(--a2) 15%, var(--a3) 20%, var(--a4) 25%, var(--a5) 30%);
+  background-size: 300% 200%, 200% 100%;
+  background-position: 50% 50%, 50% 50%;
+  filter: blur(42px) saturate(1.15);
+  animation: aurora 70s linear infinite;
+  opacity: var(--aurora-opacity);
+}
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
+  }
+}
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -1200;
+  }
+}
+.flow-line {
+  stroke-dasharray: 160 1040;
+  animation: flow-dash 9s linear infinite;
+}
+
+@keyframes connector-fall {
+  0% {
+    top: -20%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes pulse-soft {
   0%,
   100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.35;
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -3%, 0) scale(1.05);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
   }
 }
 
 .live-dot {
-  animation: pulse-dot 2s ease-in-out infinite;
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

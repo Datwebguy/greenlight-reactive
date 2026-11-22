@@ -12,14 +12,17 @@ export async function demoData() {
   try {
     const view = await readOwner(demoOwner);
     if (!view.accounts.length) return null;
-    const decisions = await recentDecisions(view.accounts.map((a) => ({ chainId: a.chainId, address: a.address })), 5).catch(
+    const decisions = await recentDecisions(view.accounts.map((a) => ({ chainId: a.chainId, address: a.address })), 30).catch(
       () => [],
     );
+    const signed = decisions.length ? decisions.filter((x) => x.source === "near-tee").length / decisions.length : null;
     const trades = view.timeline.filter((t) => t.kind === "trade").length;
     const judged = view.timeline.filter((t) => t.kind === "scored").length;
     return {
       view,
       decision: decisions[0] ?? null,
+      decisions: decisions.slice(0, 8),
+      signedShare: signed,
       cycle: latestCycle(view.timeline),
       delivery: medianDelivery(view.timeline),
       trades,

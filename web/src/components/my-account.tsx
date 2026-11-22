@@ -56,7 +56,7 @@ export function MyAccount() {
               },
             ].map((s, i) => (
               <li key={s.t} className="flex gap-4">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink text-[13px] font-semibold text-white">{i + 1}</span>
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-[13px] font-semibold text-white dark:text-[#052e16]">{i + 1}</span>
                 <div>
                   <div className="text-[16px] font-semibold">{s.t}</div>
                   <p className="mt-1 text-[14px] leading-relaxed text-ink-2">{s.b}</p>

@@ -1,12 +1,12 @@
 import Link from "next/link";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-line bg-card shadow-card ${className}`}>{children}</div>;
+  return <section className={`rounded-[28px] bg-card/60 backdrop-blur-sm ${className}`}>{children}</section>;
 }
 
 export function CardHead({ title, hint, right }: { title: string; hint?: string; right?: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+    <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-3">
       <div>
         <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
         {hint && <p className="mt-0.5 text-[13px] text-mute">{hint}</p>}
@@ -52,11 +52,11 @@ export function TxLink({ href, children = "View" }: { href: string; children?: R
 }
 
 const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[14px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 const buttonTones = {
-  primary: "bg-go text-white hover:bg-go-deep",
-  dark: "bg-ink text-white hover:bg-ink-2",
-  ghost: "border border-line-2 bg-card text-ink hover:bg-paper",
+  primary: "bg-go text-white hover:bg-go-deep dark:text-[#052e16]",
+  dark: "bg-ink text-paper hover:opacity-90",
+  ghost: "border border-line-2 text-ink hover:border-ink/40",
   danger: "bg-stop text-white hover:opacity-90",
 };
 
@@ -87,8 +87,8 @@ export function ButtonLink({
 export function Logo() {
   return (
     <span className="inline-flex items-center gap-2 font-semibold tracking-tight text-ink">
-      <span className="grid h-6 w-6 place-items-center rounded-full bg-go">
-        <span className="h-2.5 w-2.5 rounded-full bg-white" />
+      <span className="grid h-7 w-7 place-items-center rounded-full bg-go">
+        <span className="h-2.5 w-2.5 rounded-full bg-white dark:bg-[#052e16]" />
       </span>
       Greenlight
     </span>

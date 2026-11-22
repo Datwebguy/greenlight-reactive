@@ -1,12 +1,15 @@
-const names: Record<number, { label: string; cls: string }> = {
-  84532: { label: "Base", cls: "bg-info-soft text-info" },
-  1301: { label: "Unichain", cls: "bg-[#fbeaf3] text-[#b0287a]" },
-  5318007: { label: "Reactive", cls: "bg-[#eeeafb] text-[#5b3cc4]" },
-};
+import { chainBrand } from "./brand";
 
+/** A chain shown the way people recognise it: its logo and name, in a rounded pill. */
 export function ChainChip({ chainId }: { chainId: number }) {
-  const n = names[chainId] ?? { label: String(chainId), cls: "bg-paper text-ink-2" };
-  return <span className={`inline-flex rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${n.cls}`}>{n.label}</span>;
+  const b = chainBrand[chainId];
+  if (!b) return <span className="text-[12px] text-mute">{chainId}</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-2 py-0.5 text-[12px] font-medium text-ink-2">
+      <b.Logo size={14} />
+      {b.label}
+    </span>
+  );
 }
 
-export const chainLabel = (chainId: number) => names[chainId]?.label ?? String(chainId);
+export const chainLabel = (chainId: number) => chainBrand[chainId]?.label ?? String(chainId);

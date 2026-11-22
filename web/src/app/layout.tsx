@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Backdrop } from "@/components/backdrop";
 import { Providers } from "@/components/providers";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteFooter, SiteHeader } from "@/components/site";
+import { ThemeProvider } from "@/components/theme";
 import "./globals.css";
 
 const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -16,13 +18,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${sans.variable} ${mono.variable} min-h-dvh antialiased`}>
-        <Providers>
-          <SiteHeader />
-          <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">{children}</main>
-          <SiteFooter />
-        </Providers>
+        <ThemeProvider>
+          <Providers>
+            <Backdrop />
+            <SiteHeader />
+            <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">{children}</main>
+            <SiteFooter />
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

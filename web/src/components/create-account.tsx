@@ -6,7 +6,6 @@ import { decodeEventLog, isAddress, parseEther, type Address } from "viem";
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { greenlightFactoryAbi, greenlightVenueAbi } from "@/lib/abi";
 import { hostedAgent, tradingChains } from "@/lib/config";
-import { short } from "@/lib/format";
 import { Button, Card, CardHead } from "./ui";
 
 interface Field {
@@ -205,7 +204,7 @@ export function CreateAccount({ onCreated }: { onCreated?: () => void }) {
             {teeSigner ? (
               <>
                 <span className="font-medium">{signer.data?.model}</span>
-                <span className="num text-mute"> · {short(teeSigner)}</span>
+                <span className="text-mute"> · verified enclave</span>
               </>
             ) : (
               <span className="text-mute">{signer.isLoading ? "Loading…" : "Unavailable"}</span>

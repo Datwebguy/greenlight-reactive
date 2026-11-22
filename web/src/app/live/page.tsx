@@ -4,7 +4,8 @@ import { LimitMeter } from "@/components/limit-meter";
 import { greenlightScorerAbi } from "@/lib/abi";
 import { lasna } from "@/lib/config";
 import { medianDelivery } from "@/lib/cycle";
-import { ago, dollars, short } from "@/lib/format";
+import { ago, dollars } from "@/lib/format";
+import { agentName } from "@/lib/names";
 import { allAccounts, readOwner, type OwnerView } from "@/lib/server/account";
 import { clientFor } from "@/lib/server/logs";
 import type { Address } from "viem";
@@ -48,7 +49,7 @@ export default async function LivePage() {
         and how fast every change reached every chain.
       </p>
 
-      <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4">
+      <dl className="glass mt-8 grid grid-cols-2 overflow-hidden rounded-2xl sm:grid-cols-4">
         {[
           { label: "Owners", value: String(live.length) },
           { label: "Trades judged", value: String(judged) },
@@ -59,7 +60,7 @@ export default async function LivePage() {
             sub: resting ? "No trades waiting, so it is not paying to follow prices" : "Following Chainlink until each trade is judged",
           },
         ].map((s) => (
-          <div key={s.label} className="bg-card px-5 py-4">
+          <div key={s.label} className="px-5 py-4">
             <dt className="text-[12px] text-mute">{s.label}</dt>
             <dd className="num mt-1 text-[20px] font-semibold">{s.value}</dd>
             {"sub" in s && s.sub && <dd className="mt-0.5 text-[12px] leading-snug text-mute">{s.sub}</dd>}
@@ -68,10 +69,10 @@ export default async function LivePage() {
       </dl>
 
       {live.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-line bg-card px-6 py-14 text-center">
+        <div className="glass mt-8 rounded-2xl px-6 py-14 text-center">
           <p className="text-[16px] font-medium">No agents yet</p>
           <p className="mt-1 text-[14px] text-mute">Be the first to open an account.</p>
-          <Link href="/app" className="mt-5 inline-flex rounded-xl bg-go px-4 py-2.5 text-[14px] font-semibold text-white hover:bg-go-deep">
+          <Link href="/app" className="mt-5 inline-flex rounded-full bg-go px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-go-deep dark:text-[#052e16]">
             Open your account
           </Link>
         </div>
@@ -86,15 +87,13 @@ export default async function LivePage() {
               <li key={v.owner}>
                 <Link
                   href={`/owner/${v.owner}`}
-                  className="block rounded-2xl border border-line bg-card p-6 shadow-card transition hover:border-line-2 hover:shadow-[0_8px_24px_-12px_rgb(16_21_28/0.18)]"
+                  className="glass block rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-line-2"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className={`h-2 w-2 rounded-full ${frozen ? "bg-stop" : "bg-go"}`} />
                       <span className="text-[13px] font-semibold">{frozen ? "Frozen" : "Trading"}</span>
-                      {v.owner.toLowerCase() === demo && (
-                        <span className="rounded-full bg-go-soft px-2 py-0.5 text-[11px] font-semibold text-go-deep">Demo</span>
-                      )}
+
                     </div>
                     <span className="flex gap-1">
                       {[...new Set(v.accounts.map((x) => x.chainId))].map((c) => (
@@ -104,12 +103,13 @@ export default async function LivePage() {
                   </div>
                   <div className="mt-4 flex items-end justify-between gap-4">
                     <div>
-                      <div className="text-[12px] text-mute">Earned daily limit</div>
+                      <div className="text-[15px] font-semibold text-ink">{agentName(v.owner)}</div>
+                      <div className="mt-2 text-[12px] text-mute">Earned daily limit</div>
                       <div className="num text-[28px] font-semibold leading-tight">{dollars(limit)}</div>
                     </div>
                     <div className="text-right text-[13px] text-ink-2">
                       {v.book?.wins ?? 0} won · {v.book?.losses ?? 0} lost
-                      <div className="num text-[12px] text-mute">Owner {short(v.owner)}</div>
+
                     </div>
                   </div>
                   <div className="mt-4">

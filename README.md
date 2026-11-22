@@ -33,6 +33,7 @@ Greenlight lets an AI agent trade with your money, within a limit you sign once,
 - [Highlights](#highlights)
 - [Walkthrough](#walkthrough)
 - [How it works](#how-it-works)
+- [Reactive integration checklist](#reactive-integration-checklist)
 - [The full loop, on-chain](#the-full-loop-on-chain)
 - [Reactive Network tools used](#reactive-network-tools-used)
 - [Quality and testing](#quality-and-testing)
@@ -209,6 +210,23 @@ flowchart LR
 
 **The scorer pays only for what it uses.** It follows the price feed only while a trade is waiting to be judged, so a quiet day costs almost nothing.
 
+## Reactive integration checklist
+
+| | What | Where |
+|---|---|---|
+| ✓ | The scorer extends `AbstractReactive` from reactive-lib-omni, pinned at `3ade0dc` | [contracts/GreenlightScorer.sol:13](contracts/GreenlightScorer.sol#L13), [.gitmodules](.gitmodules) |
+| ✓ | `react()` accepts only the system contract (`onlySystem`) and holds all the judging logic | [contracts/GreenlightScorer.sol:163](contracts/GreenlightScorer.sol#L163) |
+| ✓ | Subscriptions are made by the contract itself through `SYSTEM.subscribe`, including new accounts discovered from factory events | [contracts/GreenlightScorer.sol:198](contracts/GreenlightScorer.sol#L198), [contracts/GreenlightScorer.sol:420](contracts/GreenlightScorer.sol#L420) |
+| ✓ | The Chainlink feed is followed only while trades wait, then unsubscribed | [contracts/GreenlightScorer.sol:326](contracts/GreenlightScorer.sol#L326) |
+| ✓ | Results go out with `SYSTEM.requestCallbackV_1_0`, one update to every account the owner has | [contracts/GreenlightScorer.sol:396](contracts/GreenlightScorer.sol#L396), [contracts/GreenlightScorer.sol:408](contracts/GreenlightScorer.sol#L408) |
+| ✓ | Accounts extend `AbstractCallback` and accept updates only from the callback proxy (`onlyServiceProvider`) carrying the scorer's address (`onlyCallbackSender`) | [contracts/GreenlightAccount.sol:17](contracts/GreenlightAccount.sol#L17), [contracts/GreenlightAccount.sol:282](contracts/GreenlightAccount.sol#L282) |
+| ✓ | Updates carry a sequence number, so a repeated delivery changes nothing; `requestResync()` asks for the latest state again | [contracts/GreenlightAccount.sol:282](contracts/GreenlightAccount.sol#L282), [contracts/GreenlightAccount.sol:301](contracts/GreenlightAccount.sol#L301) |
+| ✓ | Repeated trade events are recognised and counted once | [contracts/GreenlightScorer.sol:219](contracts/GreenlightScorer.sol#L219) |
+| ✓ | Each price update judges a bounded number of trades, keeping every reaction within its gas limit | [contracts/GreenlightScorer.sol:281](contracts/GreenlightScorer.sol#L281) |
+| ✓ | Reserves funded through the system contract's `depositTo`; the scorer also pays from its own balance through `pay()` | [scripts/deploy.ts](scripts/deploy.ts) |
+| ✓ | Timestamps everywhere, never block numbers (checked on every push) | [.github/workflows/test.yml](.github/workflows/test.yml) |
+| ✓ | Every contract verified on Sourcify | [Deployed contracts](#deployed-contracts) |
+
 ## The full loop, on-chain
 
 Every row is a real transaction. The delay is measured from the scorer's decision on Reactive Network to the update landing on each chain.
@@ -250,7 +268,7 @@ Every row is a real transaction. The delay is measured from the scorer's decisio
 | Callback | Base Sepolia | First limit applied | [`0x04fb4c…198a`](https://sepolia.basescan.org/tx/0x04fb4c93720c51fd8e24096c8e2b7ebb99ff7d06485c0977de892100851c198a) |
 | Callback | Unichain Sepolia | The owner's second account received the same limit | [`0xa9162a…2873`](https://sepolia.uniscan.xyz/tx/0xa9162ae095e25330d54ca13a2b64730b879511852b97f338a20ec9a2c9ac2873) |
 
-A decision on Reactive Network reaches each chain in **2 to 3 seconds** typically and **6 seconds** at most. `npm run replay` recomputes these numbers from the chains, and `npm run replay -- --deployment testnet-v1` covers the first deployment, where the first trade and the freeze above happened.
+Measured over 30 owner actions, the update reaches **Base in 1.9 seconds** and **Unichain in 3.9 seconds** from the owner's transaction (median), and every one of the 30 arrived on both chains ([LATENCY.md](docs/LATENCY.md)). `npm run replay` recomputes these numbers from the chains, and `npm run replay -- --deployment testnet-v1` covers the first deployment, where the first trade and the freeze above happened.
 
 ## Reactive Network tools used
 
@@ -276,10 +294,11 @@ npm test
 | Check | Result |
 |---|---|
 | Contract tests | **57 passing**, including a real response signed by NEAR AI Cloud's enclave verified inside the account contract |
-| Break testing | **47 of 47** deliberate faults caught: each safety check in the account, venue and scorer was removed one at a time, and the tests failed every time |
+| Break testing | **47 of 47** deliberate faults caught: each safety check in the account, venue and scorer was removed one at a time, and the tests failed every time ([review record](docs/REVIEW.md)) |
 | Replay safety | Repeated events, late updates, old rules and old price rounds are all shown to change nothing |
 | Independent review | The contracts, agent service and app were reviewed by independent models through NEAR AI Cloud; every confirmed finding is fixed and covered by a test |
 | End-to-end | Opening an account, pausing, resuming, changing rules, switching the AI, withdrawing and closing were run in a real browser with a real wallet on testnet |
+| Speed | Every owner action timed from Base, through the scorer on Lasna, to both chains ([LATENCY.md](docs/LATENCY.md), every transaction in [latency.csv](docs/data/latency.csv)) |
 | Source verification | Every contract is verified on Sourcify |
 
 ## Deployed contracts

@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx hardhat test solidity
+      - name: Timers use timestamps, never block numbers
+        run: "! grep -rn 'block.number' contracts/"
 
   app:
     name: App

@@ -17,7 +17,10 @@
 
 [Live app](https://greenlight-earned.vercel.app) · [Try it](#try-it) · [How it works](#how-it-works) · [On-chain proof](#on-chain-proof) · [Contracts](#deployed-contracts) · [Run it yourself](#run-it-yourself)
 
-<img src="docs/images/home.png" alt="Greenlight home page, light" width="440" /> <img src="docs/images/home-dark.png" alt="Greenlight home page, dark" width="440" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png" />
+  <img src="docs/images/home.png" alt="Greenlight home page" width="880" />
+</picture>
 
 </div>
 

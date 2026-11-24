@@ -14,7 +14,7 @@ export async function GET() {
       const b = v.book;
       if (b) {
         const limit = `$${(b.limitCents / 100).toFixed(2)} a day`;
-        message = b.frozen ? `frozen · ${b.wins} won ${b.losses} lost` : `${limit} earned · ${b.wins} won ${b.losses} lost`;
+        message = b.frozen ? `frozen · ${b.wins} won, ${b.losses} lost` : `${limit} earned · ${b.wins} won, ${b.losses} lost`;
         if (b.frozen) color = "b91c1c";
       }
     }

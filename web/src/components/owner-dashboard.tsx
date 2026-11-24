@@ -167,7 +167,7 @@ export function OwnerDashboard({ owner }: { owner: Address }) {
             />
             <Fact
               label="Record"
-              value={`${book?.wins ?? 0} won · ${book?.losses ?? 0} lost`}
+              value={`${book?.wins ?? 0} won, ${book?.losses ?? 0} lost`}
               sub={
                 book?.winStreak
                   ? `${book.winStreak} of ${policy.raiseAfterWins} wins to a raise`

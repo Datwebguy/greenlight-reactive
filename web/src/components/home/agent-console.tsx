@@ -54,7 +54,7 @@ export function AgentConsole({ d }: { d: ConsoleData | null }) {
           {d.frozen ? "Frozen" : "Trading live"}
         </motion.span>
         <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.75 }} className={`${pill} absolute top-1/3 left-0 sm:-left-6`}>
-          <span className="num">{d.wins} won · {d.losses} lost</span>
+          <span className="num">{d.wins} won, {d.losses} lost</span>
         </motion.span>
         <motion.span initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.9 }} className={`${pill} absolute top-1/2 right-0 sm:-right-6`}>
           <EthLogo size={16} />

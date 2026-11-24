@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runAgent } from "@/lib/server/agent";
+import { scorerFunds } from "@/lib/server/scorer-funds";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -11,5 +12,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const results = await runAgent(240_000);
-  return NextResponse.json({ ranAt: new Date().toISOString(), results });
+  const scorer = await scorerFunds().catch(() => null);
+  if (scorer && scorer.status !== "healthy") console.error(`Scorer REACT ${scorer.status}: reserve ${scorer.reserve}, balance ${scorer.balance}, debt ${scorer.debt}`);
+  return NextResponse.json({ ranAt: new Date().toISOString(), scorer, results });
 }

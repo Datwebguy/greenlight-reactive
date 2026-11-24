@@ -6,6 +6,8 @@
 
 **An AI that trades for you, on a limit it has to earn.**
 
+You set the boundaries. Reactive Network makes the decisions in between.
+
 [![Live app](https://img.shields.io/badge/Live_app-greenlight--earned.vercel.app-138a4a?style=for-the-badge)](https://greenlight-earned.vercel.app)
 [![Live agent](https://img.shields.io/endpoint?url=https%3A%2F%2Fgreenlight-earned.vercel.app%2Fapi%2Fbadge&style=for-the-badge)](https://greenlight-earned.vercel.app/live)
 
@@ -43,6 +45,8 @@
 ## Overview
 
 Greenlight lets an AI agent trade with your money within a limit you sign once, and it raises, lowers or freezes that limit automatically based on how the agent's trades actually turn out.
+
+The next step for on-chain systems is not more automation but delegation: people define their intent and boundaries, and contracts make the continuous decisions in between. Greenlight applies that idea to AI agents. You decide how much freedom the agent may ever have and when it must stop, and a Reactive contract decides, trade by trade and on every chain, how much of that freedom the agent has earned so far.
 
 AI agents are becoming capable enough to trade and manage money, yet there is still no good way to trust one. Today you either hand an agent full control of your wallet and hope it never makes a costly mistake, or you approve every trade yourself, which removes most of the reason for having an agent at all. Everywhere else, trust is earned over time: a new hire starts with small responsibilities and a new driver begins with a learner's permit. Greenlight applies the same principle to AI.
 
@@ -147,6 +151,9 @@ The system has four contracts and one service.
 The **agent service** ([web](web)) runs alongside the Next.js app. It reads prices and limits, asks Qwen3.8 27B running in a NEAR AI Cloud enclave for a decision, and submits the signed answer to the account.
 
 ### Why this needs Reactive Network
+
+Greenlight is a cross-chain reactive hook in the most literal sense: activity on one network triggers a response on another, with no bridge and no relayer. A trade or a pause on Base becomes a decision on Reactive Lasna, and that decision lands on every chain the owner uses within seconds. It is also a protection mechanism, because a run of losses or a large total loss stops the agent everywhere at once.
+
 
 Judging a trade means waiting for the market, comparing prices, keeping a running record and then changing the limit on several chains at once. No single chain can see the others, and a server performing this work would ask the owner to trust it. The scorer does all of it as a Reactive contract: it listens to every account, wakes on Chainlink price updates only while trades are waiting, and pushes each new limit to every chain the owner uses. Without Reactive there would be no judging, no earned limit and no single switch that stops the agent everywhere.
 

@@ -17,7 +17,7 @@ export function Hero({ agentHref, children }: { agentHref: string; children: Rea
           className="inline-flex items-center gap-2 rounded-full bg-go-soft px-3.5 py-1.5 text-[13px] font-semibold text-go-deep"
         >
           <span className="live-dot h-1.5 w-1.5 rounded-full bg-go" />
-          Earned autonomy for AI trading
+          You set the boundaries. Reactive decides the rest.
         </motion.span>
         <motion.h1
           initial={{ opacity: 0, y: 16 }}

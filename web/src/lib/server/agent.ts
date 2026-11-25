@@ -8,7 +8,7 @@ import { lastDecisionAt, recordDecision } from "./db";
 import { clientFor } from "./logs";
 import { askNear, askOpenAI, nearSignature, sha256Hex, type Decision } from "./models";
 
-const MIN_INTERVAL_S = Number(process.env.AGENT_MIN_INTERVAL_MINUTES ?? "10") * 60;
+const MIN_INTERVAL_S = Number(process.env.AGENT_MIN_INTERVAL_MINUTES ?? "20") * 60;
 /** Owners whose agents decide on the schedule. Everyone else decides whenever they press Decide now. */
 const SCHEDULED_OWNERS = (process.env.AGENT_SCHEDULED_OWNERS ?? process.env.NEXT_PUBLIC_DEMO_OWNER ?? "")
   .split(",")

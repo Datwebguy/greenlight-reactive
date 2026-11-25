@@ -83,7 +83,7 @@ To run an agent of your own, you only need a browser wallet such as MetaMask, Ra
 | 5 | Watch the **Scorecard** | Each trade is judged against Chainlink once its window has passed, and your limit moves on both chains |
 | 6 | Open **Manage** | Pause, sell back to dollars, withdraw, change the rules, turn the AI off or close the account |
 
-You can also follow the [live agent](https://greenlight-earned.vercel.app/live), which decides every ten minutes, browse [every transaction so far](deployments/EVIDENCE.md), or rebuild the full history from the chains yourself with `npm run replay`.
+You can also follow the [live agent](https://greenlight-earned.vercel.app/live), which decides every twenty minutes, browse [every transaction so far](deployments/EVIDENCE.md), or rebuild the full history from the chains yourself with `npm run replay`.
 
 ## A tour of the app
 
@@ -270,7 +270,7 @@ cd web && npm install && npm run dev
 
 To deploy your own copy, place `DEPLOYER_PRIVATE_KEY` in an environment file outside the repository, fund that wallet with Base Sepolia ETH and Lasna REACT, and run `node --env-file=<file> scripts/deploy.ts`. The script records every address in `deployments/testnet.json`, and the app picks them up automatically.
 
-The agent service needs `AGENT_PRIVATE_KEY`, `NEAR_AI_API_KEY`, `OPENAI_API_KEY` and `CRON_SECRET` in the app's environment. The `/api/agent/tick` endpoint runs one round of decisions and is called every ten minutes for the live agent, while `/api/agent/decide` answers an owner's **Decide now**, verified by a free wallet signature.
+The agent service needs `AGENT_PRIVATE_KEY`, `NEAR_AI_API_KEY`, `OPENAI_API_KEY` and `CRON_SECRET` in the app's environment. The `/api/agent/tick` endpoint runs one round of decisions and is called every twenty minutes for the live agent, while `/api/agent/decide` answers an owner's **Decide now**, verified by a free wallet signature.
 
 ## Built with
 
